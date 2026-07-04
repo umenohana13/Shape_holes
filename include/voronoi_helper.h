@@ -158,6 +158,7 @@ void write_VTK(std::string filename, const Voronoi_medial<TR>& voronoi, std::vec
 
 
     // Write vertices
+    assert(voronoi.points.size() == voronoi.medial_voronoi[0].size());
     out << "POINTS " <<  voronoi.points.size() << " double" << std::endl;
     for (typename TR::Point p : voronoi.points)
         out << p << std::endl;
