@@ -230,6 +230,7 @@ void write_VTK(std::string filename, const Voronoi_medial<TR>& voronoi, std::vec
 
     // Cells indices
     out << "CELL_DATA " << n_simplices << std::endl;
+    assert (ids.size() == n_simplices);
     out << "SCALARS CellId int 1" << std::endl;
     out << "LOOKUP_TABLE default" << std::endl;
     for (size_t id : ids)
@@ -237,6 +238,7 @@ void write_VTK(std::string filename, const Voronoi_medial<TR>& voronoi, std::vec
     out << std::endl;
 
     // Cells dimension
+    assert (dims.size() == n_simplices);
     out << "SCALARS Dimension int 1" << std::endl;
     out << "LOOKUP_TABLE default" << std::endl;
     for (size_t q : dims)

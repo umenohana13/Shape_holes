@@ -454,9 +454,9 @@ std::ostream& write_VTK(std::ostream& out, const Delaunay_index& m_dela, Vtk_exp
             out << 2;
             for (int i=0; i<2; ++i) {
                 out << " " << verts[i]->info().second ;
-                dims.push_back(1);
-                ids.push_back(cpt++);
             }
+            dims.push_back(1);
+            ids.push_back(cpt++);
             out << std::endl;
         }
     }
@@ -468,9 +468,9 @@ std::ostream& write_VTK(std::ostream& out, const Delaunay_index& m_dela, Vtk_exp
             out << 3;
             for (int i=0; i<3; ++i) {
                 out << " " << verts[i]->info().second ;
-                dims.push_back(2);
-                ids.push_back(cpt++);
             }
+            dims.push_back(2);
+            ids.push_back(cpt++);
             out << std::endl;
         }
     }
@@ -478,13 +478,13 @@ std::ostream& write_VTK(std::ostream& out, const Delaunay_index& m_dela, Vtk_exp
     if (opts & CELLS) {
         cpt = 0;
         for (Delaunay_index::Cell_handle cell : m_dela.finite_cell_handles()) {
-            dims.push_back(3);
-            ids.push_back(cpt++);
             std::array<Delaunay_index::Vertex_handle, 4> verts (m_dela.vertices(cell));
             out << 4;
             for (int i=0; i<4; ++i) {
                 out << " " << verts[i]->info().second ;
             }
+            dims.push_back(3);
+            ids.push_back(cpt++);
             out << std::endl;
         }
     }
@@ -501,7 +501,7 @@ std::ostream& write_VTK(std::ostream& out, const Delaunay_index& m_dela, Vtk_exp
             out << 3 << std::endl;
     }
     if (opts & FACETS) {
-        for (int i = 0; i < n_edges; ++i)
+        for (int i = 0; i < n_triangles; ++i)
             out << 5 << std::endl;
     }
     if (opts & CELLS) {
@@ -511,6 +511,7 @@ std::ostream& write_VTK(std::ostream& out, const Delaunay_index& m_dela, Vtk_exp
     out << std::endl;
 
     // Cells indices
+    assert (ids.size() == n_simplices);
     out << "CELL_DATA " << n_simplices << std::endl;
     out << "SCALARS CellId int 1" << std::endl;
     out << "LOOKUP_TABLE default" << std::endl;
@@ -519,6 +520,7 @@ std::ostream& write_VTK(std::ostream& out, const Delaunay_index& m_dela, Vtk_exp
     out << std::endl;
 
     // Cells dimension
+    assert (dims.size() == n_simplices);
     out << "SCALARS Dimension int 1" << std::endl;
     out << "LOOKUP_TABLE default" << std::endl;
     for (size_t q : dims)

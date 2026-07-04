@@ -55,7 +55,7 @@ int main(int argc, char* argv[])
 
 
     std::cout << "Delaunay to VTK" << std::endl;
-    write_VTK(m_dela, "delaunay.vtk", EDGES|CELLS);
+    write_VTK(m_dela, "delaunay.vtk", VERTICES|EDGES|FACETS|CELLS);
 
     std::cout << "Voronoi" << std::endl;
     Voronoi_medial voronoi_medial(m_dela);
