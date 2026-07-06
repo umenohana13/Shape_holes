@@ -9,12 +9,12 @@
 
 //typedef Delaunay_index TR;
 
-struct Voronoi_simplex {
+struct Voronoi_cell {
     size_t dim;
     std::vector<size_t> vertices;
 };
 
-std::ostream& operator<<(std::ostream& out, const Voronoi_simplex& simplex) {
+std::ostream& operator<<(std::ostream& out, const Voronoi_cell& simplex) {
     out << "<" << simplex.vertices.at(0) ;
     for (size_t i = 1; i < simplex.vertices.size(); ++i)
         out << "," << simplex.vertices.at(i);
@@ -63,12 +63,20 @@ template <typename TR>
 class Voronoi_medial {
     //protected:
 public:
-    std::vector<std::vector<Voronoi_simplex> > medial_voronoi;
+    const TR& _m_dela;
+    // Enumeration of Voronoi cells by dimension
+    std::vector<std::vector<Voronoi_cell> > medial_voronoi;
+
+    // Maps Delaunay cells (through their Cell_handle) to their Voronoi index
     std::unordered_map<typename TR::Cell_handle, size_t> cell_handle_to_index;
+
+    // Maps in each dimension the index of Voronoi cells to the associated Delaunay simplex
     std::vector<std::vector<typename TR::Simplex> > voronoi_to_delaunay;
+
+    // Enumerations of Voronoi vertices coordinates
     std::vector<typename TR::Point> points;
 
-    Voronoi_medial(TR& m_dela) {
+    Voronoi_medial(TR& m_dela) : _m_dela(m_dela){
         medial_voronoi.resize(4);
         voronoi_to_delaunay.resize(4);
         // Visit Delaunay cells and mark duals of finite non boundary cells
@@ -79,7 +87,7 @@ public:
             if( !m_dela.is_infinite(ch) )
             {
                 // Store the corresponding vertex
-                Voronoi_simplex v_simplex;
+                Voronoi_cell v_simplex;
                 v_simplex.dim = 0;
                 v_simplex.vertices.push_back(cpt);
                 points.push_back(m_dela.dual(ch));
@@ -96,7 +104,7 @@ public:
             if (voronoi_finite(m_dela, *it, neigh)) {
                 // Create dual edge
                 CGAL_precondition(neigh.size() == 2);
-                Voronoi_simplex v_simplex;
+                Voronoi_cell v_simplex;
                 v_simplex.dim = 1;
                 for (typename TR::Cell_handle cell : neigh) {
                     v_simplex.vertices.push_back(cell_handle_to_index[cell]);
@@ -113,7 +121,7 @@ public:
             std::vector<typename TR::Cell_handle> neigh;
             if (voronoi_finite(m_dela, *it, neigh)) {
                 // Create dual face
-                Voronoi_simplex v_simplex;
+                Voronoi_cell v_simplex;
                 v_simplex.dim = 2;
                 for (typename TR::Cell_handle cell : neigh) {
                     v_simplex.vertices.push_back(cell_handle_to_index[cell]);
@@ -134,7 +142,7 @@ public:
 template <typename TR>
 std::ostream& operator<<(std::ostream& out, const Voronoi_medial<TR>& vm) {
     for (int i = 0; i<4; ++i) {
-        for (Voronoi_simplex vs : vm.medial_voronoi.at(i))
+        for (Voronoi_cell vs : vm.medial_voronoi.at(i))
             out << vs ;
         out << std::endl;
     }
