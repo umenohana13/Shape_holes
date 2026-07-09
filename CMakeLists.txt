@@ -19,7 +19,7 @@ INCLUDE(CheckCXXSourceCompiles)
 
 include_directories (include)
 
-find_package(CGAL REQUIRED OPTIONAL_COMPONENTS Qt6)
+find_package(CGAL REQUIRED OPTIONAL_COMPONENTS Qt5)
 find_package( Boost REQUIRED )
 
 # create a target per cppfile
