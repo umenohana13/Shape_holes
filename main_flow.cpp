@@ -55,7 +55,7 @@ int main(int argc, char* argv[])
         Delaunay::Simplex s = Delaunay::Simplex(vit);
         if (DelaunayHelper::get_critical_info(FB.m_dela, s).c == CriticalType::Critical){
             FlowCell fc = FB.flowcell_from_critical_cell(s);
-            std::clog << fc << std::endl;
+            std::clog << FB.get_flowcell_id(fc) << "\t" << fc << std::endl;
         }
     }
 
@@ -67,7 +67,7 @@ int main(int argc, char* argv[])
         Delaunay::Simplex s = Delaunay::Simplex(*eit);
         if (DelaunayHelper::get_critical_info(FB.m_dela, s).c == CriticalType::Critical){
             FlowCell fc = FB.flowcell_from_critical_cell(s);
-            std::clog << fc << std::endl;
+            std::clog << FB.get_flowcell_id(fc) << "\t" << fc << std::endl;
         }
     }
 
@@ -79,7 +79,7 @@ int main(int argc, char* argv[])
         Delaunay::Simplex s = Delaunay::Simplex(*fit);
         if (DelaunayHelper::get_critical_info(FB.m_dela, s).c == CriticalType::Critical){
             FlowCell fc = FB.flowcell_from_critical_cell(s);
-            std::clog << fc << std::endl;
+            std::clog << FB.get_flowcell_id(fc) << "\t" << fc << std::endl;
         }
     }
     
@@ -91,9 +91,11 @@ int main(int argc, char* argv[])
         Delaunay::Simplex s = Delaunay::Simplex(cit);
         if (DelaunayHelper::get_critical_info(FB.m_dela, s).c == CriticalType::Critical){
             FlowCell fc = FB.flowcell_from_critical_cell(s);
-            std::clog << fc << std::endl;
+            std::clog << FB.get_flowcell_id(fc) << "\t" << fc << std::endl;
         }
     }
+    std::clog << "\n";
+    FB.print_poset(std::clog);
     
     time_final = (double)(clock() - time_last)/CLOCKS_PER_SEC;
     std::clog.precision(3);
