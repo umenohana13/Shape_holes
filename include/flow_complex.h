@@ -413,12 +413,14 @@ public:
         for (const Simplex& s : DelaunayHelper::D_faces(crit_simplex)) {
           to_process.push(s);
         }
+        
         while (!to_process.empty()) {
             const Simplex s = to_process.front();
             to_process.pop();
 
             if (auto search = simplex_to_flowcell_id.find(s); search != simplex_to_flowcell_id.end()) {
-                fc_faces.insert(search->second); // update the poset
+                if (search->second != id)
+                    fc_faces.insert(search->second); // update the poset
             }
             else {
                 simplex_to_flowcell_id[s] = id;
