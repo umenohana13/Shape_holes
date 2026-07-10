@@ -45,57 +45,50 @@ int main(int argc, char* argv[])
     clock_t time_last = clock();
     double time_final = 0.0;
 
-    // do stuff
-    FlowBuilder FB(poly);
-    // Delaunay::Finite_vertices_iterator vit = FB.m_dela.finite_vertices_begin();
-    // simplices.insert(Simplex(vit));
+    // create flow complex structure
+    FlowComplex flow_cplx(poly);
+    
     std::clog << std::endl << "0D" << std::endl;
-    for (Delaunay::Finite_vertices_iterator vit = FB.m_dela.finite_vertices_begin(); 
-    vit != FB.m_dela.finite_vertices_end(); vit++) {
+    for (Delaunay::Finite_vertices_iterator vit = flow_cplx.m_dela.finite_vertices_begin(); 
+    vit != flow_cplx.m_dela.finite_vertices_end(); vit++) {
         Delaunay::Simplex s = Delaunay::Simplex(vit);
-        if (DelaunayHelper::get_critical_info(FB.m_dela, s).c == CriticalType::Critical){
-            FlowCell fc = FB.flowcell_from_critical_cell(s);
-            std::clog << FB.get_flowcell_id(fc) << "\t" << fc << std::endl;
+        if (DelaunayHelper::get_critical_info(flow_cplx.m_dela, s).c == CriticalType::Critical){
+            FlowCell fc = flow_cplx.flowcell_from_critical_cell(s);
+            std::clog << flow_cplx.get_flowcell_id(fc) << "\t" << fc << std::endl; // to display the built flowcells
         }
     }
 
-    // Delaunay::Finite_edges_iterator eit = FB.m_dela.finite_edges_begin();
-    // simplices.insert(Simplex(*eit));
     std::clog << std::endl << "1D" << std::endl;
-    for (Delaunay::Finite_edges_iterator eit = FB.m_dela.finite_edges_begin(); 
-    eit != FB.m_dela.finite_edges_end(); eit++) {
+    for (Delaunay::Finite_edges_iterator eit = flow_cplx.m_dela.finite_edges_begin(); 
+    eit != flow_cplx.m_dela.finite_edges_end(); eit++) {
         Delaunay::Simplex s = Delaunay::Simplex(*eit);
-        if (DelaunayHelper::get_critical_info(FB.m_dela, s).c == CriticalType::Critical){
-            FlowCell fc = FB.flowcell_from_critical_cell(s);
-            std::clog << FB.get_flowcell_id(fc) << "\t" << fc << std::endl;
+        if (DelaunayHelper::get_critical_info(flow_cplx.m_dela, s).c == CriticalType::Critical){
+            FlowCell fc = flow_cplx.flowcell_from_critical_cell(s);
+            std::clog << flow_cplx.get_flowcell_id(fc) << "\t" << fc << std::endl; // to display the built flowcells
         }
     }
 
-    // Delaunay::Finite_facets_iterator fit = FB.m_dela.finite_facets_begin();
-    // simplices.insert(Simplex(*fit));
     std::clog << std::endl << "2D" << std::endl;
-    for (Delaunay::Finite_facets_iterator fit = FB.m_dela.finite_facets_begin(); 
-    fit != FB.m_dela.finite_facets_end(); fit++) {
+    for (Delaunay::Finite_facets_iterator fit = flow_cplx.m_dela.finite_facets_begin(); 
+    fit != flow_cplx.m_dela.finite_facets_end(); fit++) {
         Delaunay::Simplex s = Delaunay::Simplex(*fit);
-        if (DelaunayHelper::get_critical_info(FB.m_dela, s).c == CriticalType::Critical){
-            FlowCell fc = FB.flowcell_from_critical_cell(s);
-            std::clog << FB.get_flowcell_id(fc) << "\t" << fc << std::endl;
+        if (DelaunayHelper::get_critical_info(flow_cplx.m_dela, s).c == CriticalType::Critical){
+            FlowCell fc = flow_cplx.flowcell_from_critical_cell(s);
+            std::clog << flow_cplx.get_flowcell_id(fc) << "\t" << fc << std::endl; // to display the built flowcells
         }
     }
     
-    // Delaunay::Finite_cells_iterator cit = FB.m_dela.finite_cells_begin();
-    // simplices.insert(Simplex(cit));
     std::clog << std::endl << "3D" << std::endl;
-    for (Delaunay::Finite_cells_iterator cit = FB.m_dela.finite_cells_begin(); 
-    cit != FB.m_dela.finite_cells_end(); cit++) {
+    for (Delaunay::Finite_cells_iterator cit = flow_cplx.m_dela.finite_cells_begin(); 
+    cit != flow_cplx.m_dela.finite_cells_end(); cit++) {
         Delaunay::Simplex s = Delaunay::Simplex(cit);
-        if (DelaunayHelper::get_critical_info(FB.m_dela, s).c == CriticalType::Critical){
-            FlowCell fc = FB.flowcell_from_critical_cell(s);
-            std::clog << FB.get_flowcell_id(fc) << "\t" << fc << std::endl;
+        if (DelaunayHelper::get_critical_info(flow_cplx.m_dela, s).c == CriticalType::Critical){
+            FlowCell fc = flow_cplx.flowcell_from_critical_cell(s);
+            std::clog << flow_cplx.get_flowcell_id(fc) << "\t" << fc << std::endl; // to display the built flowcells
         }
     }
     std::clog << "\n";
-    FB.print_poset(std::clog);
+    flow_cplx.print_poset(std::clog);
     
     time_final = (double)(clock() - time_last)/CLOCKS_PER_SEC;
     std::clog.precision(3);

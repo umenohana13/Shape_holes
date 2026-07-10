@@ -134,14 +134,14 @@ inline std::ostream& operator<<(std::ostream& os, const FlowCell& fc)
 /*----------------------------------------------------------------------------*/
 
 /**
-* @brief The FlowBuilder class
+* @brief The FlowComplex class
 * 
 */
-class FlowBuilder
+class FlowComplex
 {
 public:
     typedef Delaunay::Simplex Simplex;
-    FlowBuilder(Polyhedron poly) : m_poly(poly)
+    FlowComplex(Polyhedron poly) : m_poly(poly)
     {
         //CGAL::draw(m_poly);
         // CGAL::Side_of_triangle_mesh<Polyhedron, Epick> inside(m_poly);
@@ -372,7 +372,7 @@ public:
                     const Delaunay::Point c = m_dela.point(ch->vertex( (i+3)%4 ));
                     const Delaunay::Point f_circum = CGAL::circumcenter(a,b,c);
                     assert(!CGAL::collinear(a,b,c));// I don't know what to do if they are colinear...
-                    Vector normal = CGAL::normal(a,b,c);
+                    Vector normal = CGAL::unit_normal(a,b,c);
                     if (CGAL::scalar_product(f_circum-pt_i, normal)<0.0) {
                         normal = -normal; // we eventually reorient the normal
                     }
@@ -392,6 +392,16 @@ public:
         return ls;
     }
     
+    /**
+    * @brief this function builds a flow cell and update the corresponding variables.
+    * It should update:
+    * std::vector<FlowCell> flowcells;
+    * std::map<Simplex, size_t> simplex_to_flowcell_id;
+    * std::vector<std::set<size_t>> flowcell_faces;
+    *
+    * The main idea is that we start from the critical cell and add recursively
+    * the simplices given by up_flow_cells.
+    */
     FlowCell flowcell_from_critical_cell(const Simplex crit_simplex)
     {
         FlowCell fc(crit_simplex);
@@ -445,6 +455,10 @@ public:
         return fc;
     }
     
+    /**
+    * @brief return the flowcell id of a given flowcell f.
+    * In fact, it just check the id associated to the critical cell of f.
+    */
     size_t get_flowcell_id(const FlowCell& f) const
     {
       if (auto search = simplex_to_flowcell_id.find(f.get_critical_simplex()); search != simplex_to_flowcell_id.end()) {
@@ -454,6 +468,10 @@ public:
       return 0;
     }
     
+    /**
+    * @brief print the poset related to the flow complex.
+    * It displays the faces of each flow cell, with their ids.
+    */
     std::ostream& print_poset(std::ostream& os) const
     {
         size_t i = 0;
@@ -472,7 +490,7 @@ public:
     // Maybe export the delaunay (finite), and add a label corresponding to the id of its flowcell, see simplex_to_flowcell_id
     
 private:
-    std::vector<FlowCell> flowcells; // probably
+    std::vector<FlowCell> flowcells;
     std::map<Simplex, size_t> simplex_to_flowcell_id;
     std::vector<std::set<size_t>> flowcell_faces; // encoding the poset
     /* WARNING I think there might be problems with the algorithm, for instance if a flowcell is twice adjacent to another cell...
