@@ -141,27 +141,66 @@ class FlowComplex
 {
 public:
     typedef Delaunay::Simplex Simplex;
+    struct Simplex_id {
+        size_t dim, i;
+    };
+    // Member data
+    Polyhedron m_poly;
+    Delaunay m_dela;
+    std::map<Delaunay::Simplex, Simplex_id> simplex_to_simplex_id; // Map for HDVF indexes
+
     FlowComplex(Polyhedron poly) : m_poly(poly)
     {
+
         //CGAL::draw(m_poly);
         // CGAL::Side_of_triangle_mesh<Polyhedron, Epick> inside(m_poly);
         for (Polyhedron::Vertex_iterator it = m_poly.vertices_begin(); it != m_poly.vertices_end(); ++it)
         {
             m_dela.insert(it->point()); // m_dela corresponds to the 3D Delaunay of the surface points
-    //        std::cout << it->point() << std::endl;
+            //        std::cout << it->point() << std::endl;
         }
+
+        // Init vertices indices info
+        size_t cpt(0);
+        for(Delaunay::Vertex_handle vh : m_dela.finite_vertex_handles()) {
+            vh->info().second = cpt++;
+        }
+
         std::clog << "Computing flow complex. Delaunay triangulation:" << std::endl;
         std::clog << "nb finite vertices: " << m_dela.number_of_vertices() << std::endl;
         std::clog << "nb edges   : " << m_dela.number_of_edges()  << " | finite: " << m_dela.number_of_finite_edges() << std::endl;
         std::clog << "nb facets  : " << m_dela.number_of_facets() << " | finite: " << m_dela.number_of_finite_facets()<< std::endl;
         std::clog << "nb cells   : " << m_dela.number_of_cells()  << " | finite: " << m_dela.number_of_finite_cells()<< std::endl;
         // CGAL::draw(m_dela);
+
+        // Build indexes of vertices
+        cpt=0;
+        for (Delaunay::Finite_vertices_iterator vit = m_dela.finite_vertices_begin(); vit != m_dela.finite_vertices_end(); vit++) {
+            Delaunay::Simplex s = Delaunay::Simplex(vit);
+            simplex_to_simplex_id[s] = Simplex_id({0,cpt++});
+        }
+        // Build indexes of edges
+        cpt = 0;
+        for (Delaunay::Finite_edges_iterator eit = m_dela.finite_edges_begin(); eit != m_dela.finite_edges_end(); eit++) {
+            Delaunay::Simplex s = Delaunay::Simplex(*eit);
+            simplex_to_simplex_id[s] = Simplex_id({1,cpt++});
+        }
+        // Build indexes of facets
+        cpt = 0;
+        for (Delaunay::Finite_facets_iterator fit = m_dela.finite_facets_begin(); fit != m_dela.finite_facets_end(); fit++) {
+            Delaunay::Simplex s = Delaunay::Simplex(*fit);
+            simplex_to_simplex_id[s] = Simplex_id({2,cpt++});
+        }
+        // Build indexes of cells
+        cpt = 0;
+        for (Delaunay::Finite_cells_iterator cit = m_dela.finite_cells_begin(); cit != m_dela.finite_cells_end(); cit++) {
+            Delaunay::Simplex s = Delaunay::Simplex(cit);
+            simplex_to_simplex_id[s] = Simplex_id({3,cpt++});
+        }
     }
-    
-    // Member data
-    Polyhedron m_poly;
-    Delaunay m_dela;
-    
+
+    const Delaunay& delaunay_mesh() { return m_dela; }
+
     /**
     * @brief up_flow_cells(s) return the list of simplices that flows towards s.
     * Precisely, the flow is defined on the dual Voronoi, and is oriented 
@@ -391,7 +430,11 @@ public:
         }
         return ls;
     }
-    
+
+    FlowCell flowcell_from_id(size_t i) {
+        return flowcells.at(i);
+    }
+
     /**
     * @brief this function builds a flow cell and update the corresponding variables.
     * It should update:
@@ -485,10 +528,33 @@ public:
         }
         return os;
     }
-    
+
+    std::ostream& write_sub(std::ostream& out, const FlowCell& fc) {
+        for (Delaunay::Simplex s : fc.get_simplices()) {
+            Simplex_id sid(simplex_to_simplex_id[s]);
+            out << sid.dim << " " << sid.i << std::endl;
+        }
+        return out;
+    }
+
+    void write_sub(const FlowCell& fc, std::string filename) {
+        std::ofstream out ( filename, std::ios::out | std::ios::trunc);
+
+        if ( ! out . good () ) {
+            std::cerr << "write_nodes for Delaunay_3. Fatal Error:\n  " << filename << " not found.\n";
+            throw std::runtime_error("File Parsing Error: File not found");
+        }
+        write_sub(out, fc);
+        out.close();
+    }
+
     // There should be a way of exporting flowcells in VTK format? At least the big ones, to see if it is coherent?
     // Maybe export the delaunay (finite), and add a label corresponding to the id of its flowcell, see simplex_to_flowcell_id
-    
+
+    size_t number_of_flow_cells() { return flowcells.size(); }
+
+
+
 private:
     std::vector<FlowCell> flowcells;
     std::map<Simplex, size_t> simplex_to_flowcell_id;

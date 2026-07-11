@@ -23,9 +23,21 @@ int main(int argc, char* argv[])
     // open the mesh file and import into a Polyhedron
     Polyhedron poly;
     std::ifstream input(filename);
-    if (!input || !(input >> poly) || poly.empty() || !CGAL::is_triangle_mesh(poly))
+    if (!input)
     {
         std::cerr << std::string(filename) + " is not a valid input file." << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    if (!(input >> poly)) {
+        std::cerr << "Cannot load model" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    if(poly.empty()) {
+        std::cerr << "Empty model" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    if(!CGAL::is_triangle_mesh(poly)) {
+        std::cerr << "Cannot load model" << std::endl;
         exit(EXIT_FAILURE);
     }
 
@@ -95,6 +107,14 @@ int main(int argc, char* argv[])
     std::clog  << "computed in " << std::fixed << time_final << "s."<< std::endl;
 
     // eventually saving
-    
+    // Write Delaunay to .simp
+    write_simp(flow_cplx.delaunay_mesh(), "tmp/delaunay3.simp");
+    write_nodes(flow_cplx.delaunay_mesh(), "tmp/delaunay3.nodes");
+    // Write cells to .sub
+    for (size_t i = 0; i< flow_cplx.number_of_flow_cells(); ++i) {
+        std::string file("tmp/flow_cell"+std::to_string(i)+".sub");
+        flow_cplx.write_sub(flow_cplx.flowcell_from_id(i), file);
+    }
+
     return 0;
 }

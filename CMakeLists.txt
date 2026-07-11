@@ -19,7 +19,8 @@ INCLUDE(CheckCXXSourceCompiles)
 
 include_directories (include)
 
-find_package(CGAL REQUIRED OPTIONAL_COMPONENTS Qt5)
+#find_package(CGAL REQUIRED OPTIONAL_COMPONENTS Qt5)
+find_package(CGAL REQUIRED)
 find_package( Boost REQUIRED )
 
 # create a target per cppfile
@@ -31,5 +32,5 @@ foreach(cppfile ${cppfiles})
   create_single_source_cgal_program("${cppfile}")
 endforeach()
 
-target_link_libraries(main_link PRIVATE CGAL::CGAL_Basic_viewer)
-target_link_libraries(main_voronoi PRIVATE CGAL::CGAL_Basic_viewer)
+#target_link_libraries(main_link PRIVATE CGAL::CGAL_Basic_viewer)
+#target_link_libraries(main_voronoi PRIVATE CGAL::CGAL_Basic_viewer)

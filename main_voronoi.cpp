@@ -35,7 +35,7 @@ int main(int argc, char* argv[])
     double time_final = 0.0;
 
 //    // Create Delaunay triangulation
-    Delaunay_index m_dela;
+    Delaunay m_dela;
     for (Polyhedron::Vertex_iterator it = m_poly.vertices_begin(); it != m_poly.vertices_end(); ++it)
     {
         m_dela.insert(it->point());
@@ -47,7 +47,7 @@ int main(int argc, char* argv[])
     std::cout << m_dela;
 
     int cpt(0);
-    for(Delaunay_index::Vertex_handle vh : m_dela.finite_vertex_handles()) {
+    for(Delaunay::Vertex_handle vh : m_dela.finite_vertex_handles()) {
         vh->info().second = cpt++;
     }
 

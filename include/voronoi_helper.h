@@ -7,7 +7,7 @@
 #include <cassert>
 
 
-//typedef Delaunay_index TR;
+//typedef Delaunay TR;
 
 struct Voronoi_cell {
     size_t dim;
@@ -83,7 +83,7 @@ public:
 
         // First: visit Delaunay cells = Voronoi vertices
         size_t cpt(0);
-        for (Delaunay_index::Cell_handle ch : m_dela.finite_cell_handles()) {
+        for (Delaunay::Cell_handle ch : m_dela.finite_cell_handles()) {
             if( !m_dela.is_infinite(ch) )
             {
                 // Store the corresponding vertex
@@ -99,7 +99,7 @@ public:
 
         // Second: visit Delaunay facets = Voronoi edges
         cpt = 0;
-        for (Delaunay_index::Finite_facets_iterator it = m_dela.finite_facets_begin(); it != m_dela.finite_facets_end(); ++it) {
+        for (Delaunay::Finite_facets_iterator it = m_dela.finite_facets_begin(); it != m_dela.finite_facets_end(); ++it) {
             std::vector<typename TR::Cell_handle> neigh;
             if (voronoi_finite(m_dela, *it, neigh)) {
                 // Create dual edge
@@ -117,7 +117,7 @@ public:
 
         // Third: visit Delaunay edges = Voronoi faces
 
-        for (Delaunay_index::Finite_edges_iterator it = m_dela.finite_edges_begin(); it != m_dela.finite_edges_end(); ++it) {
+        for (Delaunay::Finite_edges_iterator it = m_dela.finite_edges_begin(); it != m_dela.finite_edges_end(); ++it) {
             std::vector<typename TR::Cell_handle> neigh;
             if (voronoi_finite(m_dela, *it, neigh)) {
                 // Create dual face

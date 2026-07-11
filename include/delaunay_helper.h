@@ -401,7 +401,7 @@ inline Vtk_exported_cells operator&(Vtk_exported_cells a, Vtk_exported_cells b)
     return static_cast<Vtk_exported_cells>(static_cast<int>(a) & static_cast<int>(b));
 }
 
-std::ostream& write_VTK(std::ostream& out, const Delaunay_index& m_dela, Vtk_exported_cells opts = CELLS|EDGES|VERTICES, std::vector<std::vector<double> >* flags = NULL) {
+std::ostream& write_VTK(std::ostream& out, const Delaunay& m_dela, Vtk_exported_cells opts = CELLS|EDGES|VERTICES, std::vector<std::vector<double> >* flags = NULL) {
     out << "# vtk DataFile Version 2.0" << std::endl;
     out << "Shape of holes" << std::endl;
     out << "ASCII" << std::endl;
@@ -411,7 +411,7 @@ std::ostream& write_VTK(std::ostream& out, const Delaunay_index& m_dela, Vtk_exp
     // Write vertices
     out << "POINTS " <<  m_dela.number_of_vertices() << " double" << std::endl;
 
-    for (Delaunay_index::Finite_vertices_iterator it = m_dela.finite_vertices_begin(); !(it == m_dela.finite_vertices_end()); ++it) {
+    for (typename Delaunay::Finite_vertices_iterator it = m_dela.finite_vertices_begin(); !(it == m_dela.finite_vertices_end()); ++it) {
         out << it->point() << std::endl;
     }
     out << std::endl;
@@ -449,8 +449,8 @@ std::ostream& write_VTK(std::ostream& out, const Delaunay_index& m_dela, Vtk_exp
     // Export edges
     if (opts & EDGES) {
         cpt = 0 ;
-        for (Delaunay_index::Edge edge : m_dela.finite_edges()) {
-            std::array<Delaunay_index::Vertex_handle, 2> verts (m_dela.vertices(edge));
+        for (typename Delaunay::Edge edge : m_dela.finite_edges()) {
+            std::array<Delaunay::Vertex_handle, 2> verts (m_dela.vertices(edge));
             out << 2;
             for (int i=0; i<2; ++i) {
                 out << " " << verts[i]->info().second ;
@@ -463,8 +463,8 @@ std::ostream& write_VTK(std::ostream& out, const Delaunay_index& m_dela, Vtk_exp
     // Export triangles
     if (opts & FACETS) {
         cpt = 0 ;
-        for (Delaunay_index::Facet facet : m_dela.finite_facets()) {
-            std::array<Delaunay_index::Vertex_handle, 3> verts (m_dela.vertices(facet));
+        for (typename Delaunay::Facet facet : m_dela.finite_facets()) {
+            std::array<Delaunay::Vertex_handle, 3> verts (m_dela.vertices(facet));
             out << 3;
             for (int i=0; i<3; ++i) {
                 out << " " << verts[i]->info().second ;
@@ -477,8 +477,8 @@ std::ostream& write_VTK(std::ostream& out, const Delaunay_index& m_dela, Vtk_exp
     // Export cells
     if (opts & CELLS) {
         cpt = 0;
-        for (Delaunay_index::Cell_handle cell : m_dela.finite_cell_handles()) {
-            std::array<Delaunay_index::Vertex_handle, 4> verts (m_dela.vertices(cell));
+        for (typename Delaunay::Cell_handle cell : m_dela.finite_cell_handles()) {
+            std::array<Delaunay::Vertex_handle, 4> verts (m_dela.vertices(cell));
             out << 4;
             for (int i=0; i<4; ++i) {
                 out << " " << verts[i]->info().second ;
@@ -549,7 +549,7 @@ std::ostream& write_VTK(std::ostream& out, const Delaunay_index& m_dela, Vtk_exp
     return out;
 }
 
-void write_VTK(const Delaunay_index& m_dela, std::string filename, Vtk_exported_cells opts = CELLS|EDGES|VERTICES) {
+void write_VTK(const Delaunay& m_dela, std::string filename, Vtk_exported_cells opts = CELLS|EDGES|VERTICES) {
     std::ofstream out ( filename, std::ios::out | std::ios::trunc);
 
     if ( ! out . good () ) {
@@ -557,6 +557,87 @@ void write_VTK(const Delaunay_index& m_dela, std::string filename, Vtk_exported_
         throw std::runtime_error("File Parsing Error: File not found");
     }
     write_VTK(out, m_dela, opts);
+    out.close();
+}
+
+std::ostream& write_nodes(std::ostream& out, const Delaunay& m_dela) {
+    // Tetgen file format
+    // Write #nodes dim_nodes 0 0
+    out << m_dela.number_of_vertices() << " 3 0 0" << std::endl;
+
+    // Write: index_pt (from 1) x y z
+    size_t cpt(1);
+    for (typename Delaunay::Finite_vertices_iterator it = m_dela.finite_vertices_begin(); !(it == m_dela.finite_vertices_end()); ++it) {
+        out << cpt++ << " " << it->point() << std::endl;
+    }
+    out << std::endl;
+    return out;
+}
+
+void write_nodes(const Delaunay& m_dela, std::string filename) {
+    std::ofstream out ( filename, std::ios::out | std::ios::trunc);
+
+    if ( ! out . good () ) {
+        std::cerr << "write_nodes for Delaunay_3. Fatal Error:\n  " << filename << " not found.\n";
+        throw std::runtime_error("File Parsing Error: File not found");
+    }
+    write_nodes(out, m_dela);
+    out.close();
+}
+
+std::ostream& write_simp(std::ostream& out, const Delaunay& m_dela) {
+    // Cells
+    size_t cpt(0);
+    const size_t n_verts(m_dela.number_of_vertices()), n_edges(m_dela.number_of_finite_edges()), n_triangles(m_dela.number_of_finite_facets()), n_cells(m_dela.number_of_finite_cells());
+
+    // Export vertices
+    for (int i=0; i<n_verts; ++i) {
+        out << i << std::endl;
+    }
+
+    // Export edges
+    cpt = 0 ;
+    for (typename Delaunay::Edge edge : m_dela.finite_edges()) {
+        std::array<typename Delaunay::Vertex_handle, 2> verts (m_dela.vertices(edge));
+        out << verts[0]->info().second ;
+        for (int i=1; i<2; ++i) {
+            out << " " << verts[i]->info().second ;
+        }
+        out << std::endl;
+    }
+
+    // Export triangles
+    cpt = 0 ;
+    for (typename Delaunay::Facet facet : m_dela.finite_facets()) {
+        std::array<typename Delaunay::Vertex_handle, 3> verts (m_dela.vertices(facet));
+        out << verts[0]->info().second ;
+        for (int i=1; i<3; ++i) {
+            out << " " << verts[i]->info().second ;
+        }
+        out << std::endl;
+    }
+
+    // Export cells
+    cpt = 0;
+    for (typename Delaunay::Cell_handle cell : m_dela.finite_cell_handles()) {
+        std::array<typename Delaunay::Vertex_handle, 4> verts (m_dela.vertices(cell));
+        out << " " << verts[0]->info().second ;
+        for (int i=1; i<4; ++i) {
+            out << " " << verts[i]->info().second ;
+        }
+        out << std::endl;
+    }
+    return out;
+}
+
+void write_simp(const Delaunay& m_dela, std::string filename) {
+    std::ofstream out ( filename, std::ios::out | std::ios::trunc);
+
+    if ( ! out . good () ) {
+        std::cerr << "write_simp for Delaunay_3. Fatal Error:\n  " << filename << " not found.\n";
+        throw std::runtime_error("File Parsing Error: File not found");
+    }
+    write_simp(out, m_dela);
     out.close();
 }
 

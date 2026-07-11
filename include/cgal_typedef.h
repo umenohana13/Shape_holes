@@ -25,8 +25,8 @@ typedef CGAL::Delaunay_triangulation_cell_base_3<Epick>                         
 typedef CGAL::Triangulation_data_structure_3<Vb, Cb>                                    Tds;
 typedef CGAL::Triangulation_data_structure_3<Vbi, Cb>                                    Tdsi;
 //Use the Fast_location tag. Default or Compact_location works too.
-typedef CGAL::Delaunay_triangulation_3<Epick, Tds, CGAL::Fast_location>                 Delaunay;
-typedef CGAL::Delaunay_triangulation_3<Epick, Tdsi, CGAL::Fast_location>                Delaunay_index;
+//typedef CGAL::Delaunay_triangulation_3<Epick, Tds, CGAL::Fast_location>                 Delaunay;
+typedef CGAL::Delaunay_triangulation_3<Epick, Tdsi, CGAL::Fast_location>                Delaunay;
 typedef CGAL::Side_of_triangle_mesh<Polyhedron, Epick>                                  SoT;
 
 
