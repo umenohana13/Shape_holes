@@ -51,6 +51,7 @@ public:
     Persistence(Filtration<Simplex>& f);
 
     void run_persistence();
+    void print_persistence();
     void compute_holes_from_pairs(bool add_first_0_hole = true);
 
     phat::persistence_pairs get_tb_pairs() {return tb_pairs;}
@@ -68,7 +69,7 @@ private:
  * Perform an alexander deduction on the holes:
  * (T,B,dim) -> (B,T,3-dim-1)
  */
-inline void alexander_deduction(std::vector<HoleMeas>& holes) {
+inline void     alexander_deduction(std::vector<HoleMeas>& holes) {
     for (HoleMeas& hm : holes)
     {
         const TBball temp = hm.T;

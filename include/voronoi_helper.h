@@ -22,7 +22,7 @@ std::ostream& operator<<(std::ostream& out, const Voronoi_cell& simplex) {
     return out;
 }
 
-// Test if a given edge/facet is "Voronoi finite" (ie. not adjacent to any infinite cell) and returns its adjacent cofaces
+// Test if a given vertex/edge/facet is "Voronoi finite" (ie. not adjacent to any infinite cell) and returns its adjacent cofaces
 
 template <typename TR>
 bool voronoi_finite(TR& m_dela, const typename TR::Edge& e, std::vector<typename TR::Cell_handle>& neigh) {

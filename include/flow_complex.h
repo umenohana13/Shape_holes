@@ -13,20 +13,61 @@
 #define SIGN(x) (((x)<-0.000001) ? -1 : (((x)<0.000001)? 0 : 1 ))
 #define DEBUG(i) std::clog << "DEBUG " << i << std::endl
 
+//std::ostream& print_simplex(std::ostream& os,
+//                            const Delaunay::Simplex& s)
+//{
+//    switch (s.dimension()) {
+//    case 0: {
+//        auto vh = Delaunay::Vertex_handle(s);
+//        os << "Vertex(" << vh->point() << ")";
+//        break;
+//    }
+//    case 1: {
+//        auto e = Delaunay::Edge(s);
+//        os << "Edge("
+//           << e.first->vertex(e.second)->point() << ", "
+//           << e.first->vertex(e.third)->point() << ")";
+//        break;
+//    }
+//    case 2: {
+//        auto f = Delaunay::Facet(s);
+//        os << "Facet(";
+//        Delaunay::Cell_handle ch = f.first;
+//        int i = f.second;
+//        os << ch->vertex( (i+1)%4 )->point() << ", ";
+//        os << ch->vertex( (i+2)%4 )->point() << ", ";
+//        os << ch->vertex( (i+3)%4 )->point() << ")";
+//        break;
+//    }
+//    case 3: {
+//        auto c = Delaunay::Cell_handle(s);
+//        os << "Cell(";
+//        os << c->vertex(0)->point() << ", ";
+//        os << c->vertex(1)->point() << ", ";
+//        os << c->vertex(2)->point() << ", ";
+//        os << c->vertex(3)->point() << ")";
+//        break;
+//    }
+//    default:
+//        os << "Invalid simplex";
+//    }
+//    return os;
+//}
+
 std::ostream& print_simplex(std::ostream& os,
                             const Delaunay::Simplex& s)
 {
     switch (s.dimension()) {
     case 0: {
         auto vh = Delaunay::Vertex_handle(s);
-        os << "Vertex(" << vh->point() << ")";
+        os << "Vertex(" << vh->info().second << ")";
         break;
     }
     case 1: {
         auto e = Delaunay::Edge(s);
         os << "Edge("
-           << e.first->vertex(e.second)->point() << ", "
-           << e.first->vertex(e.third)->point() << ")";
+           << e.first->vertex(e.second)->info().second << ", "
+           << e.first->vertex(e.third)->info().second << ")";
         break;
     }
     case 2: {
@@ -34,18 +75,18 @@ std::ostream& print_simplex(std::ostream& os,
         os << "Facet(";
         Delaunay::Cell_handle ch = f.first;
         int i = f.second;
-        os << ch->vertex( (i+1)%4 )->point() << ", ";
-        os << ch->vertex( (i+2)%4 )->point() << ", ";
-        os << ch->vertex( (i+3)%4 )->point() << ")";
+        os << ch->vertex( (i+1)%4 )->info().second << ", ";
+        os << ch->vertex( (i+2)%4 )->info().second << ", ";
+        os << ch->vertex( (i+3)%4 )->info().second << ")";
         break;
     }
     case 3: {
         auto c = Delaunay::Cell_handle(s);
         os << "Cell(";
-        os << c->vertex(0)->point() << ", ";
-        os << c->vertex(1)->point() << ", ";
-        os << c->vertex(2)->point() << ", ";
-        os << c->vertex(3)->point() << ")";
+        os << c->vertex(0)->info().second << ", ";
+        os << c->vertex(1)->info().second << ", ";
+        os << c->vertex(2)->info().second << ", ";
+        os << c->vertex(3)->info().second << ")";
         break;
     }
     default:
@@ -145,11 +186,19 @@ public:
         size_t dim, i;
     };
     // Member data
-    Polyhedron m_poly;
+    Polyhedron& m_poly;
     Delaunay m_dela;
     std::map<Delaunay::Simplex, Simplex_id> simplex_to_simplex_id; // Map for HDVF indexes
+protected:
+    std::vector<FlowCell> flowcells;
+    std::map<Simplex, size_t> simplex_to_flowcell_id;
+    std::vector<std::set<size_t>> flowcell_faces; // encoding the poset
+    /* WARNING I think there might be problems with the algorithm, for instance if a flowcell is twice adjacent to another cell...
+    * In this case, it will be counted only once in flowcell_faces...
+    */
 
-    FlowComplex(Polyhedron poly) : m_poly(poly)
+public:
+    FlowComplex(Polyhedron& poly) : m_poly(poly)
     {
 
         //CGAL::draw(m_poly);
@@ -196,6 +245,48 @@ public:
         for (Delaunay::Finite_cells_iterator cit = m_dela.finite_cells_begin(); cit != m_dela.finite_cells_end(); cit++) {
             Delaunay::Simplex s = Delaunay::Simplex(cit);
             simplex_to_simplex_id[s] = Simplex_id({3,cpt++});
+        }
+    }
+
+    void compute_cells () {
+        std::clog << std::endl << "0D" << std::endl;
+        for (Delaunay::Finite_vertices_iterator vit = m_dela.finite_vertices_begin();
+        vit != m_dela.finite_vertices_end(); vit++) {
+            Delaunay::Simplex s = Delaunay::Simplex(vit);
+            if (DelaunayHelper::get_critical_info(m_dela, s).c == CriticalType::Critical){
+                FlowCell fc = flowcell_from_critical_cell(s);
+                std::clog << get_flowcell_id(fc) << "\t" << fc << std::endl; // to display the built flowcells
+            }
+        }
+
+        std::clog << std::endl << "1D" << std::endl;
+        for (Delaunay::Finite_edges_iterator eit = m_dela.finite_edges_begin();
+        eit != m_dela.finite_edges_end(); eit++) {
+            Delaunay::Simplex s = Delaunay::Simplex(*eit);
+            if (DelaunayHelper::get_critical_info(m_dela, s).c == CriticalType::Critical){
+                FlowCell fc = flowcell_from_critical_cell(s);
+                std::clog << get_flowcell_id(fc) << "\t" << fc << std::endl; // to display the built flowcells
+            }
+        }
+
+        std::clog << std::endl << "2D" << std::endl;
+        for (Delaunay::Finite_facets_iterator fit = m_dela.finite_facets_begin();
+        fit != m_dela.finite_facets_end(); fit++) {
+            Delaunay::Simplex s = Delaunay::Simplex(*fit);
+            if (DelaunayHelper::get_critical_info(m_dela, s).c == CriticalType::Critical){
+                FlowCell fc = flowcell_from_critical_cell(s);
+                std::clog << get_flowcell_id(fc) << "\t" << fc << std::endl; // to display the built flowcells
+            }
+        }
+
+        std::clog << std::endl << "3D" << std::endl;
+        for (Delaunay::Finite_cells_iterator cit = m_dela.finite_cells_begin();
+        cit != m_dela.finite_cells_end(); cit++) {
+            Delaunay::Simplex s = Delaunay::Simplex(cit);
+            if (DelaunayHelper::get_critical_info(m_dela, s).c == CriticalType::Critical){
+                FlowCell fc = flowcell_from_critical_cell(s);
+                std::clog << get_flowcell_id(fc) << "\t" << fc << std::endl; // to display the built flowcells
+            }
         }
     }
 
@@ -478,13 +569,14 @@ public:
             else {
                 simplex_to_flowcell_id[s] = id;
                 fc.add_simplex(s);
+                flowcells.at(id).add_simplex(s);
                 std::list<Simplex> ls = up_flow_cells(s);
                 
                 std::clog << "    - up_flow : s.dimension = " << s.dimension() << " ";
                 print_simplex(std::clog, s) << "\t[ ";
                 
                 for (const auto& s_up_flow : ls) {
-                    //print_simplex(std::clog, s_up_flow) << std::endl;
+                    print_simplex(std::clog, s_up_flow);
                     std::clog << s_up_flow.dimension()<< " ";
                     if (s_up_flow.dimension() <= crit_simplex.dimension())
                         to_process.push(s_up_flow);
@@ -519,9 +611,9 @@ public:
     {
         size_t i = 0;
         for (const auto& set : flowcell_faces){
-            os << i <<"->\t{ ";
+            os << i << " (" << flowcells.at(i).get_simplices().size() << ") " << "->\t{ ";
             for (const auto& j : set){
-                os << j << " ";
+                os << j << " (" << flowcells.at(j).get_simplices().size() << ") " ;
             }
             os << "}\n";
             i++;
@@ -537,31 +629,112 @@ public:
         return out;
     }
 
-    void write_sub(const FlowCell& fc, std::string filename) {
+    void write_sub(const FlowCell& fc, std::string filename, size_t thres_number = 2) {
+        if (fc.get_simplices().size() >= thres_number) {
+            std::ofstream out ( filename, std::ios::out | std::ios::trunc);
+
+            if ( ! out . good () ) {
+                std::cerr << "write_nodes for Delaunay_3. Fatal Error:\n  " << filename << " not found.\n";
+                throw std::runtime_error("File Parsing Error: File not found");
+            }
+
+            write_sub(out, fc);
+            out.close();
+        }
+    }
+
+    void write_criticals_sub(std::string filename) {
         std::ofstream out ( filename, std::ios::out | std::ios::trunc);
 
         if ( ! out . good () ) {
-            std::cerr << "write_nodes for Delaunay_3. Fatal Error:\n  " << filename << " not found.\n";
+            std::cerr << "write_criticals_sub. Fatal Error:\n  " << filename << " not found.\n";
             throw std::runtime_error("File Parsing Error: File not found");
         }
-        write_sub(out, fc);
+
+        for (FlowCell fc : flowcells) {
+            Delaunay::Simplex s(fc.get_critical_simplex());
+            Simplex_id sid(simplex_to_simplex_id[s]);
+            out << sid.dim << " " << sid.i << std::endl;
+        }
+
         out.close();
     }
 
     // There should be a way of exporting flowcells in VTK format? At least the big ones, to see if it is coherent?
     // Maybe export the delaunay (finite), and add a label corresponding to the id of its flowcell, see simplex_to_flowcell_id
 
-    size_t number_of_flow_cells() { return flowcells.size(); }
+    size_t number_of_flow_cells() const { return flowcells.size(); }
 
+    // write_vtk: write ids for cells and export the Delaunay simplicial complex with these flags (flag: id of the cell, flag2: 0 for the crical cell and 2 for others
 
+    virtual void write_vtk(std::string filename) {
 
-private:
-    std::vector<FlowCell> flowcells;
-    std::map<Simplex, size_t> simplex_to_flowcell_id;
-    std::vector<std::set<size_t>> flowcell_faces; // encoding the poset
-    /* WARNING I think there might be problems with the algorithm, for instance if a flowcell is twice adjacent to another cell...
-    * In this case, it will be counted only once in flowcell_faces...
-    */
+        size_t id_cell;
+        std::vector<std::vector<int> > flow_ids(4), flow_criticals(4); // set to flow_id or -flow_id (for criticals)
+        const size_t end_cells = number_of_flow_cells()+1;
+        flow_ids.at(0).resize(m_dela.number_of_vertices(),end_cells);
+        flow_ids.at(1).resize(m_dela.number_of_finite_edges(),end_cells);
+        flow_ids.at(2).resize(m_dela.number_of_finite_facets(),end_cells);
+        flow_ids.at(3).resize(m_dela.number_of_finite_cells(),end_cells);
+        flow_criticals.at(0).resize(m_dela.number_of_vertices(),end_cells);
+        flow_criticals.at(1).resize(m_dela.number_of_finite_edges(),end_cells);
+        flow_criticals.at(2).resize(m_dela.number_of_finite_facets(),end_cells);
+        flow_criticals.at(3).resize(m_dela.number_of_finite_cells(),end_cells);
+
+        // Build flow_ids
+
+        // Vertices
+        size_t cpt(0);
+        for (typename Delaunay::Finite_vertices_iterator it = m_dela.finite_vertices_begin(); !(it == m_dela.finite_vertices_end()); ++it) {
+            Delaunay::Simplex s(it);
+            id_cell = simplex_to_flowcell_id[s];
+            flow_ids.at(0).at(cpt) = id_cell;
+            if (s == flowcell_from_id(id_cell).get_critical_simplex())
+                flow_criticals.at(0).at(cpt++) = 0;
+            else
+                flow_criticals.at(0).at(cpt++) = 2;
+        }
+
+        // Edges
+        cpt = 0;
+        for (typename Delaunay::Edge edge : m_dela.finite_edges()) {
+            Delaunay::Simplex s(edge);
+            id_cell = simplex_to_flowcell_id[s];
+            flow_ids.at(1).at(cpt) = id_cell;
+            if (s == flowcell_from_id(id_cell).get_critical_simplex())
+                flow_criticals.at(1).at(cpt++) = 0;
+            else
+                flow_criticals.at(1).at(cpt++) = 2;
+        }
+
+        // Triangles
+        cpt = 0;
+        for (typename Delaunay::Facet facet : m_dela.finite_facets()) {
+            Delaunay::Simplex s(facet);
+            id_cell = simplex_to_flowcell_id[s];
+            flow_ids.at(2).at(cpt) = id_cell;
+            if (s == flowcell_from_id(id_cell).get_critical_simplex())
+                flow_criticals.at(2).at(cpt++) = 0;
+            else
+                flow_criticals.at(2).at(cpt++) = 2;
+        }
+
+        // Cells
+        cpt = 0;
+        for (typename Delaunay::Cell_handle cell : m_dela.finite_cell_handles()) {
+            Delaunay::Simplex s(cell);
+            id_cell = simplex_to_flowcell_id[s];
+            flow_ids.at(3).at(cpt) = id_cell;
+            if (s == flowcell_from_id(id_cell).get_critical_simplex())
+                flow_criticals.at(3).at(cpt++) = 0;
+            else
+                flow_criticals.at(3).at(cpt++) = 2;
+        }
+
+        // Export the Delaunay mesh with these flags
+        write_VTK(m_dela, filename, CELLS|FACETS|EDGES|VERTICES, &flow_ids, &flow_criticals);
+    }
+
  };
 
 #endif // FLOW_COMPLEX_H

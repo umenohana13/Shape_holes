@@ -56,14 +56,7 @@ inline bool operator<(const MedialSimplex& lhs, const MedialSimplex& rhs)
     return lhs.id() < rhs.id();
 }
 
-/**
- * @brief FiltrationMedial::init_finite_filtration_info
- * Computes the maps medial_type and distance_field and points (ball centers)
- * for finite simplices.
- * Also init the map simplex_faces, that contains the Delaunay faces and cofaces
- * (also only for finite simplices).
- * This function MUST be called before init_infinite_filtration_info.
- */
+
  struct before_than_face_value_order
  {
      // to compare pairs of (medial_info, Dcell)
@@ -130,6 +123,14 @@ public:
         return count;
     }
 
+    /**
+     * @brief FiltrationMedial::init_finite_filtration_info
+     * Computes the maps medial_type and distance_field and points (ball centers)
+     * for finite simplices.
+     * Also init the map simplex_faces, that contains the Delaunay faces and cofaces
+     * (also only for finite simplices).
+     * This function MUST be called before init_infinite_filtration_info.
+     */
     void init_finite_filtration_info() {
         // initialize the data structure for telling if a point is inside a mesh
         // cf https://doc.cgal.org/latest/Polygon_mesh_processing/index.html#InsideExample

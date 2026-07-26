@@ -401,7 +401,7 @@ inline Vtk_exported_cells operator&(Vtk_exported_cells a, Vtk_exported_cells b)
     return static_cast<Vtk_exported_cells>(static_cast<int>(a) & static_cast<int>(b));
 }
 
-std::ostream& write_VTK(std::ostream& out, const Delaunay& m_dela, Vtk_exported_cells opts = CELLS|EDGES|VERTICES, std::vector<std::vector<double> >* flags = NULL) {
+std::ostream& write_VTK(std::ostream& out, const Delaunay& m_dela, Vtk_exported_cells opts = CELLS|EDGES|VERTICES, std::vector<std::vector<int> >* flags = NULL, std::vector<std::vector<int> >* flags2 = NULL) {
     out << "# vtk DataFile Version 2.0" << std::endl;
     out << "Shape of holes" << std::endl;
     out << "ASCII" << std::endl;
@@ -528,35 +528,40 @@ std::ostream& write_VTK(std::ostream& out, const Delaunay& m_dela, Vtk_exported_
     out << std::endl;
 
     // Flags (if provided)
-    if ((flags != NULL) && (flags->size()>=2)) {
+    if ((flags != NULL) && (flags->size()==4)) {
         if (((*flags)[0].size() == n_verts) && ((*flags)[1].size() == n_edges) && ((*flags)[2].size() == n_triangles) && ((*flags)[3].size() == n_cells)) {
-            out << "SCALARS Flags double 1" << std::endl;
+            out << "SCALARS Flags int 1" << std::endl;
             out << "LOOKUP_TABLE default" << std::endl;
-            for (double x : (*flags)[0])
-                out << x << " ";
-            out << std::endl;
-            for (double x : (*flags)[1])
-                out << x << " ";
-            out << std::endl;
-            for (double x : (*flags)[2])
-                out << x << " ";
-            out << std::endl;
-            for (double x : (*flags)[3])
-                out << x << " ";
-            out << std::endl;
+            for (int i=0; i<4; ++i) {
+                for (int x : (*flags)[i])
+                    out << x << " ";
+                out << std::endl;
+            }
+        }
+    }
+    // Flags (if provided)
+    if ((flags2 != NULL) && (flags2->size()==4)) {
+        if (((*flags2)[0].size() == n_verts) && ((*flags2)[1].size() == n_edges) && ((*flags2)[2].size() == n_triangles) && ((*flags2)[3].size() == n_cells)) {
+            out << "SCALARS Flags2 int 1" << std::endl;
+            out << "LOOKUP_TABLE default" << std::endl;
+            for (int i=0; i<4; ++i) {
+                for (int x : (*flags2)[i])
+                    out << x << " ";
+                out << std::endl;
+            }
         }
     }
     return out;
 }
 
-void write_VTK(const Delaunay& m_dela, std::string filename, Vtk_exported_cells opts = CELLS|EDGES|VERTICES) {
+void write_VTK(const Delaunay& m_dela, std::string filename, Vtk_exported_cells opts = CELLS|EDGES|VERTICES, std::vector<std::vector<int> >* flags = NULL, std::vector<std::vector<int> >* flags2 = NULL) {
     std::ofstream out ( filename, std::ios::out | std::ios::trunc);
 
     if ( ! out . good () ) {
         std::cerr << "write_VTK for Delaunay_3. Fatal Error:\n  " << filename << " not found.\n";
         throw std::runtime_error("File Parsing Error: File not found");
     }
-    write_VTK(out, m_dela, opts);
+    write_VTK(out, m_dela, opts, flags, flags2);
     out.close();
 }
 

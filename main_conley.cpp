@@ -1,6 +1,6 @@
 #include "input_parser.h"
 #include "delaunay_helper.h"
-#include "flow_complex.h"
+#include "conley_complex.h"
 
 #include <fstream>
 #include <limits>
@@ -12,7 +12,7 @@ int main(int argc, char* argv[])
     InputParser input_parser(argc, argv);
 
     if(input_parser.cmdOptionExists("--help") || input_parser.cmdOptionExists("-h") || argc <= 1){
-        std::clog << "Usage: main_flow object.off [-E] [-o output_file] [-h]" << std::endl
+        std::clog << "Usage: main_conley object.off [-E] [-o output_file] [-h]" << std::endl
         << "Compute flow complex of the 3D object object.off using the delaunay "
         << "triangulation." << std::endl
         << "-o output_file   : write the result in output_file." << std::endl
@@ -60,12 +60,13 @@ int main(int argc, char* argv[])
 
 
     // create flow complex structure
-    FlowComplex flow_cplx(poly);
+    ConleyComplex conley_cplx(poly, 1.3);
+    conley_cplx.print_infos();
 
-    write_VTK(flow_cplx.delaunay_mesh(), "tmp/delaunay.vtk");
+    conley_cplx.write_vtk("tmp/conley.vtk");
 
-    flow_cplx.compute_cells();
-
+//    write_VTK(flow_cplx.delaunay_mesh(), "tmp/delaunay.vtk");
+//
 //    std::clog << std::endl << "0D" << std::endl;
 //    for (Delaunay::Finite_vertices_iterator vit = flow_cplx.m_dela.finite_vertices_begin(); 
 //    vit != flow_cplx.m_dela.finite_vertices_end(); vit++) {
@@ -105,25 +106,25 @@ int main(int argc, char* argv[])
 //            std::clog << flow_cplx.get_flowcell_id(fc) << "\t" << fc << std::endl; // to display the built flowcells
 //        }
 //    }
-    std::clog << "\n";
-    flow_cplx.print_poset(std::clog);
-
-//    std::cout << "----- Flow cells" << std::endl;
-//    for (int i=0; i<flow_cplx.number_of_flow_cells(); ++i) {
-//        std::cout << "---> " << i << std::endl;
-//        FlowCell cell (flow_cplx.flowcell_from_id(i));
-//        cell.print(std::cout);
-//        std::cout << std::endl;
-//    }
-
-    time_final = (double)(clock() - time_last)/CLOCKS_PER_SEC;
-    std::clog.precision(3);
-    std::clog  << "computed in " << std::fixed << time_final << "s."<< std::endl;
-
-    flow_cplx.write_vtk("tmp/flow_complex.vtk");
-
-    for (size_t i = 0; i< flow_cplx.number_of_flow_cells(); ++i)
-        std::cout << "flow_cell " << i << "(size: " <<  flow_cplx.flowcell_from_id(i).get_simplices().size() << ")" << std::endl;
+//    std::clog << "\n";
+//    flow_cplx.print_poset(std::clog);
+//
+////    std::cout << "----- Flow cells" << std::endl;
+////    for (int i=0; i<flow_cplx.number_of_flow_cells(); ++i) {
+////        std::cout << "---> " << i << std::endl;
+////        FlowCell cell (flow_cplx.flowcell_from_id(i));
+////        cell.print(std::cout);
+////        std::cout << std::endl;
+////    }
+//
+//    time_final = (double)(clock() - time_last)/CLOCKS_PER_SEC;
+//    std::clog.precision(3);
+//    std::clog  << "computed in " << std::fixed << time_final << "s."<< std::endl;
+//
+//    flow_cplx.write_vtk("tmp/flow_complex.vtk");
+//
+//    for (size_t i = 0; i< conley_cplx.number_of_flow_cells(); ++i)
+//        std::cout << "flow_cell " << i << "(size: " <<  conley_cplx.flowcell_from_id(i).get_simplices().size() << ")" << std::endl;
 
 
 //    // eventually saving
