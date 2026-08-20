@@ -59,89 +59,36 @@ int main(int argc, char* argv[])
     double time_final = 0.0;
 
 
+    // Write poly to off file
+    std::ofstream out ( "tmp/poly.off", std::ios::out | std::ios::trunc);
+
+    if ( ! out . good () ) {
+        std::cerr << "write poly. Fatal Error:\n  " << filename << " not found.\n";
+        throw std::runtime_error("File Parsing Error: File not found");
+    }
+    out << poly ;
+
+    out.close();
+
     // create flow complex structure
-    ConleyComplex conley_cplx(poly, 1.3);
+    ConleyComplex conley_cplx(poly, .1);
+
+    // Extract the polyhedron from the Delaunay mesh (and check the inclusion)
+//    std::map<Delaunay::Simplex, Polyhedron::Facet> poly_simplices;
+    std::set<Delaunay::Simplex> poly_simplices;
+    bool included(conley_cplx.extract_shape_from_delaunay(poly, poly_simplices));
+
+    std::cout << "==== INCLUSION" << std::endl;
+    std::cout << "poly included in Delaunay: " << included << std::endl;
+
+    std::cout << "===== POSET" << std::endl;
+    conley_cplx.print_poset(std::cout);
+    std::cout << "===== CONLEY" << std::endl;
     conley_cplx.print_infos();
 
     conley_cplx.write_vtk("tmp/conley.vtk");
 
-//    write_VTK(flow_cplx.delaunay_mesh(), "tmp/delaunay.vtk");
-//
-//    std::clog << std::endl << "0D" << std::endl;
-//    for (Delaunay::Finite_vertices_iterator vit = flow_cplx.m_dela.finite_vertices_begin(); 
-//    vit != flow_cplx.m_dela.finite_vertices_end(); vit++) {
-//        Delaunay::Simplex s = Delaunay::Simplex(vit);
-//        if (DelaunayHelper::get_critical_info(flow_cplx.m_dela, s).c == CriticalType::Critical){
-//            FlowCell fc = flow_cplx.flowcell_from_critical_cell(s);
-//            std::clog << flow_cplx.get_flowcell_id(fc) << "\t" << fc << std::endl; // to display the built flowcells
-//        }
-//    }
-//
-//    std::clog << std::endl << "1D" << std::endl;
-//    for (Delaunay::Finite_edges_iterator eit = flow_cplx.m_dela.finite_edges_begin(); 
-//    eit != flow_cplx.m_dela.finite_edges_end(); eit++) {
-//        Delaunay::Simplex s = Delaunay::Simplex(*eit);
-//        if (DelaunayHelper::get_critical_info(flow_cplx.m_dela, s).c == CriticalType::Critical){
-//            FlowCell fc = flow_cplx.flowcell_from_critical_cell(s);
-//            std::clog << flow_cplx.get_flowcell_id(fc) << "\t" << fc << std::endl; // to display the built flowcells
-//        }
-//    }
-//
-//    std::clog << std::endl << "2D" << std::endl;
-//    for (Delaunay::Finite_facets_iterator fit = flow_cplx.m_dela.finite_facets_begin(); 
-//    fit != flow_cplx.m_dela.finite_facets_end(); fit++) {
-//        Delaunay::Simplex s = Delaunay::Simplex(*fit);
-//        if (DelaunayHelper::get_critical_info(flow_cplx.m_dela, s).c == CriticalType::Critical){
-//            FlowCell fc = flow_cplx.flowcell_from_critical_cell(s);
-//            std::clog << flow_cplx.get_flowcell_id(fc) << "\t" << fc << std::endl; // to display the built flowcells
-//        }
-//    }
-//    
-//    std::clog << std::endl << "3D" << std::endl;
-//    for (Delaunay::Finite_cells_iterator cit = flow_cplx.m_dela.finite_cells_begin(); 
-//    cit != flow_cplx.m_dela.finite_cells_end(); cit++) {
-//        Delaunay::Simplex s = Delaunay::Simplex(cit);
-//        if (DelaunayHelper::get_critical_info(flow_cplx.m_dela, s).c == CriticalType::Critical){
-//            FlowCell fc = flow_cplx.flowcell_from_critical_cell(s);
-//            std::clog << flow_cplx.get_flowcell_id(fc) << "\t" << fc << std::endl; // to display the built flowcells
-//        }
-//    }
-//    std::clog << "\n";
-//    flow_cplx.print_poset(std::clog);
-//
-////    std::cout << "----- Flow cells" << std::endl;
-////    for (int i=0; i<flow_cplx.number_of_flow_cells(); ++i) {
-////        std::cout << "---> " << i << std::endl;
-////        FlowCell cell (flow_cplx.flowcell_from_id(i));
-////        cell.print(std::cout);
-////        std::cout << std::endl;
-////    }
-//
-//    time_final = (double)(clock() - time_last)/CLOCKS_PER_SEC;
-//    std::clog.precision(3);
-//    std::clog  << "computed in " << std::fixed << time_final << "s."<< std::endl;
-//
-//    flow_cplx.write_vtk("tmp/flow_complex.vtk");
-//
-//    for (size_t i = 0; i< conley_cplx.number_of_flow_cells(); ++i)
-//        std::cout << "flow_cell " << i << "(size: " <<  conley_cplx.flowcell_from_id(i).get_simplices().size() << ")" << std::endl;
-
-
-//    // eventually saving
-//    // Write Delaunay to .simp
-//    const size_t thres_number(2);
-//    write_simp(flow_cplx.delaunay_mesh(), "tmp/delaunay3.simp");
-//    write_nodes(flow_cplx.delaunay_mesh(), "tmp/delaunay3.nodes");
-//    flow_cplx.write_criticals_sub("tmp/criticals.sub");
-//    // Write cells to .sub
-//    size_t cpt(1);
-//    for (size_t i = 0; i< flow_cplx.number_of_flow_cells(); ++i) {
-//        if (flow_cplx.flowcell_from_id(i).get_simplices().size() >= thres_number) {
-//            std::string file("tmp/flow_cell"+std::to_string(cpt)+".sub");
-//            std::cout << "flow_cell " << i << " <-> " << cpt++ << "(size: " <<  flow_cplx.flowcell_from_id(i).get_simplices().size() << ")" << std::endl;
-//            flow_cplx.write_sub(flow_cplx.flowcell_from_id(i), file, thres_number);
-//        }
-//    }
-
     return 0;
 }
+
+// TODO : merge must be bi-directional "edges of poset can be merged in any direction ...

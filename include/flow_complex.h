@@ -109,6 +109,7 @@ private:
     const Delaunay::Simplex crit_simplex;
     std::set<Delaunay::Simplex> del_simplices;
     float df;
+    Delaunay::Point p;
 
 public:
     FlowCell(const Delaunay::Simplex _crit_simplex) : //ID(currID++),
@@ -145,6 +146,9 @@ public:
     Delaunay::Simplex get_critical_simplex() const {return crit_simplex;}
     int dimension() const {return crit_simplex.dimension();}
     void set_df(float val) {df = val;}
+    float get_df() const { return df; }
+    void set_p(Delaunay::Point pt) { p = pt; }
+    Delaunay::Point get_p() { return p; }
     // int id() const { return ID; }
     
     std::ostream& print(std::ostream& os) const
@@ -203,14 +207,15 @@ public:
 
         //CGAL::draw(m_poly);
         // CGAL::Side_of_triangle_mesh<Polyhedron, Epick> inside(m_poly);
+        size_t cpt(0);
         for (Polyhedron::Vertex_iterator it = m_poly.vertices_begin(); it != m_poly.vertices_end(); ++it)
         {
             m_dela.insert(it->point()); // m_dela corresponds to the 3D Delaunay of the surface points
             //        std::cout << it->point() << std::endl;
         }
 
-        // Init vertices indices info
-        size_t cpt(0);
+        // Init Delaunay vertices indices info
+        cpt=0;
         for(Delaunay::Vertex_handle vh : m_dela.finite_vertex_handles()) {
             vh->info().second = cpt++;
         }
@@ -249,6 +254,7 @@ public:
     }
 
     void compute_cells () {
+        init_flowcells_from_critical_cells();
         std::clog << std::endl << "0D" << std::endl;
         for (Delaunay::Finite_vertices_iterator vit = m_dela.finite_vertices_begin();
         vit != m_dela.finite_vertices_end(); vit++) {
@@ -287,6 +293,67 @@ public:
                 FlowCell fc = flowcell_from_critical_cell(s);
                 std::clog << get_flowcell_id(fc) << "\t" << fc << std::endl; // to display the built flowcells
             }
+        }
+    }
+
+    bool check_partition_cells () {
+        std::map<Delaunay::Simplex, bool> vertices, edges, faces, cells;
+
+        size_t cpt(0);
+        // Vertices
+        for (Delaunay::Finite_vertices_iterator vit = m_dela.finite_vertices_begin();
+             vit != m_dela.finite_vertices_end(); vit++) {
+            const Delaunay::Simplex s(vit);
+            auto it(simplex_to_flowcell_id.find(s));
+            if (it != simplex_to_flowcell_id.end()) { // Simplex found in a cell
+                if (vertices.find(s) != vertices.end()) { // Simplex already recorded in another cell
+                    std::cerr << "Vertex " << cpt << " recorded in two flow cells" << std::endl;
+                    return false;
+                }
+            }
+            ++cpt;
+        }
+        // Edges
+        cpt=0;
+        for (Delaunay::Finite_edges_iterator vit = m_dela.finite_edges_begin();
+             vit != m_dela.finite_edges_end(); vit++) {
+            const Delaunay::Simplex s(*vit);
+            auto it(simplex_to_flowcell_id.find(s));
+            if (it != simplex_to_flowcell_id.end()) { // Simplex found in a cell
+                if (vertices.find(s) != vertices.end()) { // Simplex already recorded in another cell
+                    std::cerr << "Edge " << cpt << " recorded in two flow cells" << std::endl;
+                    return false;
+                }
+            }
+            ++cpt;
+        }
+        // Facets
+        cpt=0;
+        for (Delaunay::Finite_facets_iterator vit = m_dela.finite_facets_begin();
+             vit != m_dela.finite_facets_end(); vit++) {
+            const Delaunay::Simplex s(*vit);
+            auto it(simplex_to_flowcell_id.find(s));
+            if (it != simplex_to_flowcell_id.end()) { // Simplex found in a cell
+                if (vertices.find(s) != vertices.end()) { // Simplex already recorded in another cell
+                    std::cerr << "Facet " << cpt << " recorded in two flow cells" << std::endl;
+                    return false;
+                }
+            }
+            ++cpt;
+        }
+        // Cells
+        cpt=0;
+        for (Delaunay::Finite_cells_iterator vit = m_dela.finite_cells_begin();
+             vit != m_dela.finite_cells_end(); vit++) {
+            const Delaunay::Simplex s(vit);
+            auto it(simplex_to_flowcell_id.find(s));
+            if (it != simplex_to_flowcell_id.end()) { // Simplex found in a cell
+                if (vertices.find(s) != vertices.end()) { // Simplex already recorded in another cell
+                    std::cerr << "Cell " << cpt << " recorded in two flow cells" << std::endl;
+                    return false;
+                }
+            }
+            ++cpt;
         }
     }
 
@@ -536,13 +603,12 @@ public:
     * The main idea is that we start from the critical cell and add recursively
     * the simplices given by up_flow_cells.
     */
-    FlowCell flowcell_from_critical_cell(const Simplex crit_simplex)
+
+    void init_flowcell_from_critical_cell(const Simplex crit_simplex)
     {
         FlowCell fc(crit_simplex);
-        // print_simplex(std::clog, crit_simplex) << std::endl;
         size_t id = flowcells.size();
-        flowcells.push_back(fc);
-        
+
         CriticalInfo crit_info = DelaunayHelper::get_critical_info(m_dela, crit_simplex);
         if (crit_info.c != CriticalType::Critical)
         {
@@ -550,7 +616,65 @@ public:
             print_simplex(std::clog, crit_simplex) << " not critical" << std::endl;
         }
         fc.set_df(crit_info.r);
+        fc.set_p(crit_info.p);
+
+        flowcells.push_back(fc);
         simplex_to_flowcell_id[crit_simplex] = id;
+    }
+
+    void init_flowcells_from_critical_cells() {
+        for (Delaunay::Finite_vertices_iterator vit = m_dela.finite_vertices_begin();
+        vit != m_dela.finite_vertices_end(); vit++) {
+            Delaunay::Simplex s = Delaunay::Simplex(vit);
+            if (DelaunayHelper::get_critical_info(m_dela, s).c == CriticalType::Critical){
+                init_flowcell_from_critical_cell(s);
+            }
+        }
+
+        for (Delaunay::Finite_edges_iterator eit = m_dela.finite_edges_begin();
+        eit != m_dela.finite_edges_end(); eit++) {
+            Delaunay::Simplex s = Delaunay::Simplex(*eit);
+            if (DelaunayHelper::get_critical_info(m_dela, s).c == CriticalType::Critical){
+                init_flowcell_from_critical_cell(s);
+            }
+        }
+
+        for (Delaunay::Finite_facets_iterator fit = m_dela.finite_facets_begin();
+        fit != m_dela.finite_facets_end(); fit++) {
+            Delaunay::Simplex s = Delaunay::Simplex(*fit);
+            if (DelaunayHelper::get_critical_info(m_dela, s).c == CriticalType::Critical){
+                init_flowcell_from_critical_cell(s);
+            }
+        }
+
+        for (Delaunay::Finite_cells_iterator cit = m_dela.finite_cells_begin();
+        cit != m_dela.finite_cells_end(); cit++) {
+            Delaunay::Simplex s = Delaunay::Simplex(cit);
+            if (DelaunayHelper::get_critical_info(m_dela, s).c == CriticalType::Critical){
+                init_flowcell_from_critical_cell(s);
+            }
+        }
+    }
+
+    FlowCell flowcell_from_critical_cell(const Simplex crit_simplex)
+    {
+        CriticalInfo crit_info = DelaunayHelper::get_critical_info(m_dela, crit_simplex);
+        if (crit_info.c != CriticalType::Critical)
+        {
+            std::cerr << "Error in flowcell_from_critical_cell: simplex ";
+            print_simplex(std::clog, crit_simplex) << " not critical" << std::endl;
+        }
+        // Assert if the flowcell has been initiated with its critical simplex
+        auto search(simplex_to_flowcell_id.find(crit_simplex));
+        if (search == simplex_to_flowcell_id.end()) {
+            std::cerr << "Error in flowcell_from_critical_cell: flowcell non initiated";
+            throw std::runtime_error("Error in flowcell_from_critical_cell: flowcell non initiated");
+        }
+        size_t id = search->second;
+        FlowCell fc(flowcells.at(id));
+        // print_simplex(std::clog, crit_simplex) << std::endl;
+
+        // Init poset
         std::set<size_t> fc_faces = {};
          
         std::queue<Simplex> to_process;
@@ -563,8 +687,12 @@ public:
             to_process.pop();
 
             if (auto search = simplex_to_flowcell_id.find(s); search != simplex_to_flowcell_id.end()) {
-                if (search->second != id)
+                // AB: possible error here when search->second is critical but not yet visited
+                // AB fix: first visit all critical cells and init their flow_cell with them
+                if (search->second != id) {
+                    std::cout << "    - poset: " << id << " -> " << search->second << "("; print_simplex(std::clog, s); std::cout << ")" << std::endl;
                     fc_faces.insert(search->second); // update the poset
+                }
             }
             else {
                 simplex_to_flowcell_id[s] = id;
@@ -611,9 +739,9 @@ public:
     {
         size_t i = 0;
         for (const auto& set : flowcell_faces){
-            os << i << " (" << flowcells.at(i).get_simplices().size() << ") " << "->\t{ ";
+            os << i  << " (dim: " << flowcells.at(i).get_critical_simplex().dimension() << " / n: " << flowcells.at(i).get_simplices().size() << ") " << "-> { " << std::endl;
             for (const auto& j : set){
-                os << j << " (" << flowcells.at(j).get_simplices().size() << ") " ;
+                os << "\t" << j << " (dim: " << flowcells.at(j).get_critical_simplex().dimension() << " / n: "<< flowcells.at(j).get_simplices().size() << ") " << std::endl;
             }
             os << "}\n";
             i++;

@@ -121,6 +121,51 @@ public:
     }
 
     /**
+     * \brief Returns the sorted vertex of vertices indices of a given cell
+     */
+
+    // Vertex
+    static std::vector<size_t> simplex_to_indices (const Delaunay& m_dela, const Delaunay::Vertex_handle& v) {
+        std::vector<size_t> indices;
+        indices.push_back(v->info().second);
+        return indices;
+    }
+
+    // Edge
+    static std::vector<size_t> simplex_to_indices (const Delaunay& m_dela, const Delaunay::Edge& e) {
+        std::vector<size_t> indices;
+        std::array<Delaunay::Vertex_handle, 2> verts (m_dela.vertices(e));
+        for (int i=0; i<2; ++i) {
+            indices.push_back(verts[i]->info().second);
+        }
+        std::sort(indices.begin(), indices.end());
+        return indices;
+    }
+
+    // Facet
+    static std::vector<size_t> simplex_to_indices (const Delaunay& m_dela, const Delaunay::Facet& f) {
+        std::vector<size_t> indices;
+        std::array<Delaunay::Vertex_handle, 3> verts (m_dela.vertices(f));
+        for (int i=0; i<3; ++i) {
+            indices.push_back(verts[i]->info().second);
+        }
+        std::sort(indices.begin(), indices.end());
+        return indices;
+    }
+
+    // Cell
+    static std::vector<size_t> simplex_to_indices (const Delaunay& m_dela, const Delaunay::Cell_handle& c) {
+        std::vector<size_t> indices;
+        std::array<Delaunay::Vertex_handle, 4> verts (m_dela.vertices(c));
+        for (int i=0; i<4; ++i) {
+            indices.push_back(verts[i]->info().second);
+        }
+        std::sort(indices.begin(), indices.end());
+        return indices;
+    }
+
+
+    /**
      * @brief DelaunayHelper::D_finite_faces
      * Return the list of the finite 2-simplices in the boundary of the D-cell ch.
      */
