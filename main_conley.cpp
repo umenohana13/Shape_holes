@@ -71,7 +71,7 @@ int main(int argc, char* argv[])
     out.close();
 
     // create flow complex structure
-    ConleyComplex conley_cplx(poly, .1);
+    ConleyComplex conley_cplx(poly, .4);
 
     // Extract the polyhedron from the Delaunay mesh (and check the inclusion)
 //    std::map<Delaunay::Simplex, Polyhedron::Facet> poly_simplices;
