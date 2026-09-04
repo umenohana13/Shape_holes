@@ -73,20 +73,23 @@ int main(int argc, char* argv[])
     // create flow complex structure
     ConleyComplex conley_cplx(poly, .4);
 
+    std::cout << "===== POSET" << std::endl;
+    std::cout << "partition: " << conley_cplx.check_partition_cells() << std::endl;
+    conley_cplx.print_poset(std::cout);
+
     // Extract the polyhedron from the Delaunay mesh (and check the inclusion)
 //    std::map<Delaunay::Simplex, Polyhedron::Facet> poly_simplices;
-    std::set<Delaunay::Simplex> poly_simplices;
-    bool included(conley_cplx.extract_shape_from_delaunay(poly, poly_simplices));
+//    std::set<Delaunay::Simplex> poly_simplices;
+//    bool included(conley_cplx.extract_shape_from_delaunay(poly, poly_simplices));
+//
+//    std::cout << "==== INCLUSION" << std::endl;
+//    std::cout << "poly included in Delaunay: " << included << std::endl;
 
-    std::cout << "==== INCLUSION" << std::endl;
-    std::cout << "poly included in Delaunay: " << included << std::endl;
-
-    std::cout << "===== POSET" << std::endl;
-    conley_cplx.print_poset(std::cout);
     std::cout << "===== CONLEY" << std::endl;
     conley_cplx.print_infos();
 
     conley_cplx.write_vtk("tmp/conley.vtk");
+    conley_cplx.FlowComplex::write_vtk("tmp/flow_complex.vtk");
 
     return 0;
 }

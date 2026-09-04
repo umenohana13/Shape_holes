@@ -2,6 +2,7 @@
 #define DELAUNAY_HELPER_H
 
 #include "cgal_typedef.h"
+#include <type_traits>
 
 
 enum class CriticalType {NonCritical, Critical};
@@ -297,7 +298,7 @@ public:
                 // baricentric coordinate of the V-vertex.
                 const Delaunay::Cell_handle ch(s);
                 const Delaunay::Point dual_point = m_dela.dual(ch);
-                if (m_dela.tetrahedron(ch).has_on_bounded_side(dual_point))
+                if ((m_dela.tetrahedron(ch).has_on_bounded_side(dual_point)) || (m_dela.tetrahedron(ch).has_on_boundary(dual_point)))
                 {
                     const Delaunay::Point p0 = m_dela.point(ch->vertex(0));
                     crit.assign(
@@ -446,7 +447,8 @@ inline Vtk_exported_cells operator&(Vtk_exported_cells a, Vtk_exported_cells b)
     return static_cast<Vtk_exported_cells>(static_cast<int>(a) & static_cast<int>(b));
 }
 
-std::ostream& write_VTK(std::ostream& out, const Delaunay& m_dela, Vtk_exported_cells opts = CELLS|EDGES|VERTICES, std::vector<std::vector<int> >* flags = NULL, std::vector<std::vector<int> >* flags2 = NULL) {
+template <typename Tflag2>
+std::ostream& write_VTK(std::ostream& out, const Delaunay& m_dela, Vtk_exported_cells opts = CELLS|EDGES|VERTICES, std::vector<std::vector<int> >* flags = NULL, std::vector<std::vector<Tflag2> >* flags2 = NULL) {
     out << "# vtk DataFile Version 2.0" << std::endl;
     out << "Shape of holes" << std::endl;
     out << "ASCII" << std::endl;
@@ -587,10 +589,17 @@ std::ostream& write_VTK(std::ostream& out, const Delaunay& m_dela, Vtk_exported_
     // Flags (if provided)
     if ((flags2 != NULL) && (flags2->size()==4)) {
         if (((*flags2)[0].size() == n_verts) && ((*flags2)[1].size() == n_edges) && ((*flags2)[2].size() == n_triangles) && ((*flags2)[3].size() == n_cells)) {
-            out << "SCALARS Flags2 int 1" << std::endl;
+            if constexpr (std::is_same_v<Tflag2, int>)
+                out << "SCALARS Flags2 int 1" << std::endl;
+            else if constexpr (std::is_same_v<Tflag2, double>) {
+                std::cout << "double" << std::endl;
+                out << "SCALARS Flags2 double 1" << std::endl;
+            }
+            else
+                throw "Tflag2 not supported by write_VTK";
             out << "LOOKUP_TABLE default" << std::endl;
             for (int i=0; i<4; ++i) {
-                for (int x : (*flags2)[i])
+                for (Tflag2 x : (*flags2)[i])
                     out << x << " ";
                 out << std::endl;
             }
@@ -599,7 +608,8 @@ std::ostream& write_VTK(std::ostream& out, const Delaunay& m_dela, Vtk_exported_
     return out;
 }
 
-void write_VTK(const Delaunay& m_dela, std::string filename, Vtk_exported_cells opts = CELLS|EDGES|VERTICES, std::vector<std::vector<int> >* flags = NULL, std::vector<std::vector<int> >* flags2 = NULL) {
+template <typename Tflag2>
+void write_VTK(const Delaunay& m_dela, std::string filename, Vtk_exported_cells opts = CELLS|EDGES|VERTICES, std::vector<std::vector<int> >* flags = NULL, std::vector<std::vector<Tflag2> >* flags2 = NULL) {
     std::ofstream out ( filename, std::ios::out | std::ios::trunc);
 
     if ( ! out . good () ) {

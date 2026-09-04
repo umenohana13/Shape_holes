@@ -7,6 +7,7 @@
 #include "delaunay_helper.h"
 #include "flow_complex.h"
 #include "OSM/OSM.h"
+#include <CGAL/Side_of_triangle_mesh.h>
 
 #include <fstream>
 #include <limits>
@@ -45,9 +46,31 @@ protected:
     Row_matrix poset;
     std::map<std::pair<size_t, size_t>,Poset_edge_value> values;
     std::map<size_t, IIS> iiss;
+    std::vector<bool> is_boundary;
+
+    void init_is_boundary (const SoT& inside) {
+        const size_t n(this->number_of_flow_cells());
+        is_boundary = std::vector<bool>(n, false);
+        for (size_t i = 0; i<n; ++i) {
+            if ((flowcells.at(i).dimension() == 2) && (this->is_on_boundary(i, inside))) {
+                is_boundary.at(i) = true;
+//                // If a flow cell is on the boundary, all its faces are also on the boundary
+//                Delaunay::Simplex crit(flowcells.at(i).get_critical_simplex());
+//                std::list<Delaunay::Simplex> faces(DelaunayHelper::D_sub_faces(Delaunay::Facet(crit)));
+//                for (Delaunay::Simplex s : faces) {
+//                    is_boundary.at(this->simplex_to_flowcell_id[s]) = true;
+//                }
+            }
+//            else if (flowcells.at(i).dimension() == 0)
+//                is_boundary.at(i)=true;
+        }
+    }
 
 public:
-    // Returns the difference between critical points
+    // Select flow cells which critical cell belong to initial shape
+
+
+    // Returns the distance between critical points
 
     Poset_edge_value value_diff_critical_points (size_t cell_id1, size_t cell_id2) {
         // Distance between critical points
@@ -60,7 +83,7 @@ public:
 
     Poset_edge_value value_diff_df (size_t cell_id1, size_t cell_id2) {
         if (value_diff_critical_points(cell_id1, cell_id2) < threshold) {
-            double diff(abs(DelaunayHelper::get_critical_info(m_dela,this->flowcell_from_id(cell_id2).get_critical_simplex()).r) - abs(DelaunayHelper::get_critical_info(m_dela,this->flowcell_from_id(cell_id1).get_critical_simplex()).r));
+            double diff(abs((DelaunayHelper::get_critical_info(m_dela,this->flowcell_from_id(cell_id2).get_critical_simplex()).r) - (DelaunayHelper::get_critical_info(m_dela,this->flowcell_from_id(cell_id1).get_critical_simplex()).r)));
             Poset_edge_value res = abs(diff);
             return res;
         }
@@ -146,10 +169,24 @@ public:
     }
 
     ConleyComplex(Polyhedron& poly, double thresh) : FlowComplex(poly), threshold(thresh) {
-        // Init comparison function
 
         // Compute flow complex
         this->compute_cells();
+
+        {
+            SoT inside(m_poly);
+            // Init sign of flowcells df
+            for (int i=0; i<this->number_of_flow_cells(); ++i) {
+                Delaunay::Simplex s(this->flowcells.at(i).get_critical_simplex());
+                // Get side of the associated critical point wrt m_poly
+                const Delaunay::Point p(DelaunayHelper::get_critical_info(m_dela,this->flowcell_from_id(i).get_critical_simplex()).p);
+                CGAL::Bounded_side res = inside(p);
+                if (res == CGAL::ON_BOUNDED_SIDE)
+                    this->flowcells.at(i).set_df(-this->flowcells.at(i).get_df());
+            }
+            // Init is_boundary
+            init_is_boundary(inside);
+        }
 
         // Init the map of edges values and the sparse matrix encoding the poset
         poset = Column_matrix(this->number_of_flow_cells(), this->number_of_flow_cells());
@@ -165,12 +202,20 @@ public:
         }
         std::cout << poset ;
 
+        // Merge begin
         // Get sorted edges
         std::set<Poset_edge> sorted_edges(get_sorted_edges());
 
         std::cout << "M = [";
         for (Poset_edge edge : sorted_edges)
             std::cout << edge.value << " ";
+        std::cout << "]" << std::endl;
+
+        std::cout << "MM = [";
+        for (size_t i=0; i<this->number_of_flow_cells(); ++i) {
+            std::cout << this->flowcells.at(i).get_df() << " ";
+//            std::cout << is_boundary[i] << " ";
+        }
         std::cout << "]" << std::endl;
 
         // Init IISs (initially, one IIS by flow_cell/critical point/critical simplex)
@@ -196,6 +241,7 @@ public:
             }
             edge = *(sorted_edges.begin());
         }
+        // Merge end
     }
 
     size_t number_of_conley_iis() { return iiss.size(); }
@@ -216,7 +262,7 @@ public:
     void write_vtk(std::string filename) {
 
         size_t id_cell, id_flowcell;
-        std::vector<std::vector<int> > conley_ids(4), flow_ids(4); // set to iis index
+        std::vector<std::vector<int> > conley_ids(4), flow_ids(4), boundary_ids(4); // set to iis index
         const size_t end_cells(number_of_conley_iis()+1), end_flowcells(this->number_of_flow_cells()+1);
         conley_ids.at(0).resize(m_dela.number_of_vertices(),end_cells);
         conley_ids.at(1).resize(m_dela.number_of_finite_edges(),end_cells);
@@ -226,6 +272,10 @@ public:
         flow_ids.at(1).resize(m_dela.number_of_finite_edges(),end_flowcells);
         flow_ids.at(2).resize(m_dela.number_of_finite_facets(),end_flowcells);
         flow_ids.at(3).resize(m_dela.number_of_finite_cells(),end_flowcells);
+        boundary_ids.at(0).resize(m_dela.number_of_vertices(),1);
+        boundary_ids.at(1).resize(m_dela.number_of_finite_edges(),0);
+        boundary_ids.at(2).resize(m_dela.number_of_finite_facets(),0);
+        boundary_ids.at(3).resize(m_dela.number_of_finite_cells(),0);
 
         // Build flow_ids
         // Create a map flowcell_id -> iis id
@@ -253,6 +303,7 @@ public:
             id_cell = flowcell_id_to_iis_id[simplex_to_flowcell_id[s]];
             id_flowcell = simplex_to_flowcell_id[s];
             flow_ids.at(1).at(cpt) = id_flowcell;
+            boundary_ids.at(1).at(cpt) = is_boundary.at(simplex_to_flowcell_id.at(s));
             conley_ids.at(1).at(cpt++) = id_cell;
         }
 
@@ -263,6 +314,7 @@ public:
             id_cell = flowcell_id_to_iis_id[simplex_to_flowcell_id[s]];
             id_flowcell = simplex_to_flowcell_id[s];
             flow_ids.at(2).at(cpt) = id_flowcell;
+            boundary_ids.at(2).at(cpt) = is_boundary.at(simplex_to_flowcell_id.at(s));
             conley_ids.at(2).at(cpt++) = id_cell;
         }
 
@@ -277,7 +329,8 @@ public:
         }
 
         // Export the Delaunay mesh with these flags
-        write_VTK(m_dela, filename, CELLS|FACETS|EDGES|VERTICES, &conley_ids, &flow_ids);
+//        write_VTK(m_dela, filename, CELLS|FACETS|EDGES|VERTICES, &conley_ids, &flow_ids);
+        write_VTK(m_dela, filename, CELLS|FACETS|EDGES|VERTICES, &conley_ids, &boundary_ids);
     }
 
 protected:
@@ -290,12 +343,15 @@ protected:
             const Row_chain& row(CGAL::OSM::cget_row(poset, i));
             for (Row_chain::const_iterator it2 = row.cbegin(); it2 != row.cend(); ++it2) {
                 const size_t j(it2->first);
-                const auto e(std::make_pair(i,j));
-                Poset_edge pe;
-                pe.first = i;
-                pe.second = j;
-                pe.value = CGAL::OSM::get_coefficient(poset,i,j);
-                sorted_edges.insert(pe);
+                // Consider only flow edges which do not end on a boundary flowcell
+                if (!is_boundary.at(j)) {
+                    const auto e(std::make_pair(i,j));
+                    Poset_edge pe;
+                    pe.first = i;
+                    pe.second = j;
+                    pe.value = CGAL::OSM::get_coefficient(poset,i,j);
+                    sorted_edges.insert(pe);
+                }
             }
         }
         return sorted_edges;
