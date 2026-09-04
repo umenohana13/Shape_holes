@@ -121,6 +121,33 @@ public:
         return l;
     }
 
+    /** \brief Return the Vertex_Handles attached to cells */
+    static std::array<Delaunay::Vertex_handle, 2> get_vertices(const Delaunay::Edge& e)
+    {
+        std::array<Delaunay::Vertex_handle, 2> verts;
+        verts[0] = e.first->vertex(e.second);
+        verts[1] = e.first->vertex(e.third);
+        return verts;
+    } 
+    static std::array<Delaunay::Vertex_handle, 3> get_vertices(const Delaunay::Facet& f)
+    {
+        std::array<Delaunay::Vertex_handle, 3> verts;
+        verts[0] = f.first->vertex((f.second+1)%4);
+        verts[1] = f.first->vertex((f.second+2)%4);
+        verts[2] = f.first->vertex((f.second+3)%4);
+        return verts;
+    }
+    static std::array<Delaunay::Vertex_handle, 4> get_vertices(const Delaunay::Cell_handle& c)
+    {
+        std::array<Delaunay::Vertex_handle, 4> verts;
+        verts[0] = c->vertex(0);
+        verts[1] = c->vertex(1);
+        verts[2] = c->vertex(2);
+        verts[3] = c->vertex(3);
+        return verts;
+    }
+
+
     /**
      * \brief Returns the sorted vertex of vertices indices of a given cell
      */
@@ -135,7 +162,7 @@ public:
     // Edge
     static std::vector<size_t> simplex_to_indices (const Delaunay& m_dela, const Delaunay::Edge& e) {
         std::vector<size_t> indices;
-        std::array<Delaunay::Vertex_handle, 2> verts (m_dela.vertices(e));
+        std::array<Delaunay::Vertex_handle, 2> verts (DelaunayHelper::get_vertices(e));
         for (int i=0; i<2; ++i) {
             indices.push_back(verts[i]->info().second);
         }
@@ -146,7 +173,7 @@ public:
     // Facet
     static std::vector<size_t> simplex_to_indices (const Delaunay& m_dela, const Delaunay::Facet& f) {
         std::vector<size_t> indices;
-        std::array<Delaunay::Vertex_handle, 3> verts (m_dela.vertices(f));
+        std::array<Delaunay::Vertex_handle, 3> verts (DelaunayHelper::get_vertices(f));
         for (int i=0; i<3; ++i) {
             indices.push_back(verts[i]->info().second);
         }
@@ -157,7 +184,7 @@ public:
     // Cell
     static std::vector<size_t> simplex_to_indices (const Delaunay& m_dela, const Delaunay::Cell_handle& c) {
         std::vector<size_t> indices;
-        std::array<Delaunay::Vertex_handle, 4> verts (m_dela.vertices(c));
+        std::array<Delaunay::Vertex_handle, 4> verts (DelaunayHelper::get_vertices(c));
         for (int i=0; i<4; ++i) {
             indices.push_back(verts[i]->info().second);
         }
@@ -429,6 +456,7 @@ public:
     }
 };
 
+////////////////////////////////////////////////////////////////////////////////
 // VTK export
 
 enum Vtk_exported_cells {
@@ -497,7 +525,7 @@ std::ostream& write_VTK(std::ostream& out, const Delaunay& m_dela, Vtk_exported_
     if (opts & EDGES) {
         cpt = 0 ;
         for (typename Delaunay::Edge edge : m_dela.finite_edges()) {
-            std::array<Delaunay::Vertex_handle, 2> verts (m_dela.vertices(edge));
+            std::array<Delaunay::Vertex_handle, 2> verts (DelaunayHelper::get_vertices(edge));
             out << 2;
             for (int i=0; i<2; ++i) {
                 out << " " << verts[i]->info().second ;
@@ -511,7 +539,7 @@ std::ostream& write_VTK(std::ostream& out, const Delaunay& m_dela, Vtk_exported_
     if (opts & FACETS) {
         cpt = 0 ;
         for (typename Delaunay::Facet facet : m_dela.finite_facets()) {
-            std::array<Delaunay::Vertex_handle, 3> verts (m_dela.vertices(facet));
+            std::array<Delaunay::Vertex_handle, 3> verts (DelaunayHelper::get_vertices(facet));
             out << 3;
             for (int i=0; i<3; ++i) {
                 out << " " << verts[i]->info().second ;
@@ -525,7 +553,7 @@ std::ostream& write_VTK(std::ostream& out, const Delaunay& m_dela, Vtk_exported_
     if (opts & CELLS) {
         cpt = 0;
         for (typename Delaunay::Cell_handle cell : m_dela.finite_cell_handles()) {
-            std::array<Delaunay::Vertex_handle, 4> verts (m_dela.vertices(cell));
+            std::array<Delaunay::Vertex_handle, 4> verts (DelaunayHelper::get_vertices(cell));
             out << 4;
             for (int i=0; i<4; ++i) {
                 out << " " << verts[i]->info().second ;
@@ -620,6 +648,20 @@ void write_VTK(const Delaunay& m_dela, std::string filename, Vtk_exported_cells 
     out.close();
 }
 
+// Added by YS, because calling write_VTK without flags resulted in error: no match.
+//(couldn’t deduce template parameter Tflag2)
+void write_VTK(const Delaunay& m_dela, std::string filename, Vtk_exported_cells opts = CELLS|EDGES|VERTICES) {
+    std::ofstream out ( filename, std::ios::out | std::ios::trunc);
+
+    if ( ! out . good () ) {
+        std::cerr << "write_VTK for Delaunay_3. Fatal Error:\n  " << filename << " not found.\n";
+        throw std::runtime_error("File Parsing Error: File not found");
+    }
+    std::vector<std::vector<int> >* flags_null = NULL;
+    write_VTK(out, m_dela, opts, NULL, flags_null);
+    out.close();
+}
+
 std::ostream& write_nodes(std::ostream& out, const Delaunay& m_dela) {
     // Tetgen file format
     // Write #nodes dim_nodes 0 0
@@ -658,7 +700,7 @@ std::ostream& write_simp(std::ostream& out, const Delaunay& m_dela) {
     // Export edges
     cpt = 0 ;
     for (typename Delaunay::Edge edge : m_dela.finite_edges()) {
-        std::array<typename Delaunay::Vertex_handle, 2> verts (m_dela.vertices(edge));
+        std::array<typename Delaunay::Vertex_handle, 2> verts (DelaunayHelper::get_vertices(edge));
         out << verts[0]->info().second ;
         for (int i=1; i<2; ++i) {
             out << " " << verts[i]->info().second ;
@@ -669,7 +711,7 @@ std::ostream& write_simp(std::ostream& out, const Delaunay& m_dela) {
     // Export triangles
     cpt = 0 ;
     for (typename Delaunay::Facet facet : m_dela.finite_facets()) {
-        std::array<typename Delaunay::Vertex_handle, 3> verts (m_dela.vertices(facet));
+        std::array<typename Delaunay::Vertex_handle, 3> verts (DelaunayHelper::get_vertices(facet));
         out << verts[0]->info().second ;
         for (int i=1; i<3; ++i) {
             out << " " << verts[i]->info().second ;
@@ -680,7 +722,7 @@ std::ostream& write_simp(std::ostream& out, const Delaunay& m_dela) {
     // Export cells
     cpt = 0;
     for (typename Delaunay::Cell_handle cell : m_dela.finite_cell_handles()) {
-        std::array<typename Delaunay::Vertex_handle, 4> verts (m_dela.vertices(cell));
+        std::array<typename Delaunay::Vertex_handle, 4> verts (DelaunayHelper::get_vertices(cell));
         out << " " << verts[0]->info().second ;
         for (int i=1; i<4; ++i) {
             out << " " << verts[i]->info().second ;

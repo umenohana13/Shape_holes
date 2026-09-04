@@ -150,7 +150,7 @@ std::ostream& operator<<(std::ostream& out, const Voronoi_medial<TR>& vm) {
 }
 
 template <typename TR>
-void write_VTK(std::string filename, const Voronoi_medial<TR>& voronoi, std::vector<std::vector<double> >* flags = NULL) {
+std::ostream& write_VTK(std::string filename, const Voronoi_medial<TR>& voronoi, std::vector<std::vector<double> >* flags = NULL) {
     std::ofstream out ( filename, std::ios::out | std::ios::trunc);
     if ( ! out . good () ) {
         std::cerr << "write_VTK for Voronoi in R^3. Fatal Error:\n  " << filename << " not found.\n";

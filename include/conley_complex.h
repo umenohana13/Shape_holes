@@ -135,7 +135,7 @@ public:
         }
 
         // Build Polyhedron triangles indices and get their
-        for (Polyhedron::Facet_iterator fit = poly.faces_begin(); fit != poly.facets_end(); ++fit) {
+        for (Polyhedron::Facet_iterator fit = poly.facets_begin(); fit != poly.facets_end(); ++fit) {
             // Visit facet vertices (3)
             if (!fit->is_triangle())
                 throw std::runtime_error("Non triangle facet in poly");

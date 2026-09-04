@@ -65,11 +65,15 @@ int main(int argc, char* argv[])
     write_VTK(flow_cplx.delaunay_mesh(), "tmp/delaunay.vtk");
 
     flow_cplx.compute_cells();
-    flow_cplx.check_partition_cells();
-
-
+    
     std::clog << "\n";
-    flow_cplx.print_poset(std::clog);
+    std::cout << "===== PARTITION" << std::endl;
+    std::cout << "partition: " << flow_cplx.check_partition_cells() << std::endl;
+
+
+    // std::clog << "\n";
+    // std::cout << "===== POSET" << std::endl;
+    // flow_cplx.print_poset(std::clog);
 
 
     time_final = (double)(clock() - time_last)/CLOCKS_PER_SEC;
@@ -77,7 +81,9 @@ int main(int argc, char* argv[])
     std::clog  << "computed in " << std::fixed << time_final << "s."<< std::endl;
 
     flow_cplx.write_vtk("tmp/flow_complex.vtk");
-
+    
+    std::clog << "\n";
+    std::cout << "===== FLOW CELLS" << std::endl;
     for (size_t i = 0; i< flow_cplx.number_of_flow_cells(); ++i)
         std::cout << "flow_cell " << i << "(size: " <<  flow_cplx.flowcell_from_id(i).get_simplices().size() << ")" << std::endl;
 
