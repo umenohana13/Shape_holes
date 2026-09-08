@@ -84,8 +84,9 @@ int main(int argc, char* argv[])
     
     std::clog << "\n";
     std::cout << "===== FLOW CELLS" << std::endl;
-    for (size_t i = 0; i< flow_cplx.number_of_flow_cells(); ++i)
-        std::cout << "flow_cell " << i << "(size: " <<  flow_cplx.flowcell_from_id(i).get_simplices().size() << ")" << std::endl;
+    flow_cplx.print_flowcells(std::clog);
+    // for (size_t i = 0; i< flow_cplx.number_of_flow_cells(); ++i)
+    //     std::cout << "flow_cell " << i << "(size: " <<  flow_cplx.flowcell_from_id(i).get_simplices().size() << ")" << std::endl;
 
 
     return 0;

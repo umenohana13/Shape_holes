@@ -121,6 +121,7 @@ public:
         return l;
     }
 
+
     /** \brief Return the Vertex_Handles attached to cells */
     static std::array<Delaunay::Vertex_handle, 2> get_vertices(const Delaunay::Edge& e)
     {
@@ -247,6 +248,8 @@ public:
         return max3(s1.squared_length(), s2.squared_length(), s3.squared_length());
     }
 
+    
+    /** \brief return if a simplex is infinite */
     static bool is_infinite(
                             const Delaunay &m_dela,
                             const Delaunay::Simplex s) {
