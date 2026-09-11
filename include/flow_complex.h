@@ -403,7 +403,7 @@ public:
 
         flowcells.push_back(fc);
         simplex_to_flowcell_id[crit_simplex] = id;
-        std::clog << "Critical cell: " << simplex_to_simplex_id[crit_simplex].i << std::endl;
+        std::clog << "Critical cell: " << simplex_to_simplex_id[crit_simplex].i << " - " << simplex_to_simplex_id[crit_simplex].dim << std::endl;
     }
     
     void init_flowcell_from_infinite_cells()
@@ -1080,9 +1080,13 @@ public:
     // write_vtk: write ids for cells and export the Delaunay simplicial complex with these flags (flag: id of the cell, flag2: 0 for the crical cell and 2 for others
 
     virtual void write_vtk(std::string filename) {
-        std::vector<std::vector<int> > flow_ids(4), flow_criticals(4); // set to flow_id or -flow_id (for criticals)
+        std::vector<std::vector<int> > simplex_ids(4), flow_ids(4), flow_criticals(4); // set to flow_id or -flow_id (for criticals)
         std::vector<std::vector<double> > flow_df(4);
         const size_t end_cells = number_of_flow_cells()+1;
+        simplex_ids.at(0).resize(m_dela.number_of_vertices(),-1);
+        simplex_ids.at(1).resize(m_dela.number_of_finite_edges(),-1);
+        simplex_ids.at(2).resize(m_dela.number_of_finite_facets(),-1);
+        simplex_ids.at(3).resize(m_dela.number_of_finite_cells(),-1);
         flow_ids.at(0).resize(m_dela.number_of_vertices(),end_cells);
         flow_ids.at(1).resize(m_dela.number_of_finite_edges(),end_cells);
         flow_ids.at(2).resize(m_dela.number_of_finite_facets(),end_cells);
@@ -1102,6 +1106,7 @@ public:
         size_t cpt(0);
         for (typename Delaunay::Finite_vertices_iterator it = m_dela.finite_vertices_begin(); !(it == m_dela.finite_vertices_end()); ++it) {
             Delaunay::Simplex s(it);
+            simplex_ids.at(0).at(cpt) = simplex_to_simplex_id[s].i;
             auto search(simplex_to_flowcell_id.find(s));
             if (search != simplex_to_flowcell_id.end()) {
                 size_t id_cell = simplex_to_flowcell_id[s];
@@ -1123,6 +1128,7 @@ public:
         cpt = 0;
         for (typename Delaunay::Edge edge : m_dela.finite_edges()) {
             Delaunay::Simplex s(edge);
+            simplex_ids.at(1).at(cpt) = simplex_to_simplex_id[s].i;
             auto search(simplex_to_flowcell_id.find(s));
             if (search != simplex_to_flowcell_id.end()) {
                 size_t id_cell = simplex_to_flowcell_id[s];
@@ -1144,6 +1150,7 @@ public:
         cpt = 0;
         for (typename Delaunay::Facet facet : m_dela.finite_facets()) {
             Delaunay::Simplex s(facet);
+            simplex_ids.at(2).at(cpt) = simplex_to_simplex_id[s].i;
             auto search(simplex_to_flowcell_id.find(s));
             if (search != simplex_to_flowcell_id.end()) {
                 size_t id_cell = simplex_to_flowcell_id[s];
@@ -1165,6 +1172,7 @@ public:
         cpt = 0;
         for (typename Delaunay::Cell_handle cell : m_dela.finite_cell_handles()) {
             Delaunay::Simplex s(cell);
+            simplex_ids.at(3).at(cpt) = simplex_to_simplex_id[s].i;
             auto search(simplex_to_flowcell_id.find(s));
             if (search != simplex_to_flowcell_id.end()) {
                 size_t id_cell = simplex_to_flowcell_id[s];
@@ -1183,8 +1191,8 @@ public:
         }
 
         // Export the Delaunay mesh with these flags
-        write_VTK(m_dela, "tmp/criticals.vtk", CELLS|FACETS|EDGES|VERTICES, &flow_criticals, &flow_df);
-        write_VTK(m_dela, filename, CELLS|FACETS|EDGES|VERTICES, &flow_ids, &flow_df);
+        write_VTK(m_dela, "tmp/criticals.vtk", simplex_ids, CELLS|FACETS|EDGES|VERTICES, &flow_criticals, &flow_df);
+        write_VTK(m_dela, filename, simplex_ids, CELLS|FACETS|EDGES|VERTICES, &flow_ids, &flow_df);
     }
 
  };

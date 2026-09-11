@@ -479,7 +479,7 @@ inline Vtk_exported_cells operator&(Vtk_exported_cells a, Vtk_exported_cells b)
 }
 
 template <typename Tflag2>
-std::ostream& write_VTK(std::ostream& out, const Delaunay& m_dela, Vtk_exported_cells opts = CELLS|EDGES|VERTICES, std::vector<std::vector<int> >* flags = NULL, std::vector<std::vector<Tflag2> >* flags2 = NULL) {
+std::ostream& write_VTK(std::ostream& out, const Delaunay& m_dela, const std::vector<std::vector<int> >& cell_id, Vtk_exported_cells opts = CELLS|EDGES|VERTICES, std::vector<std::vector<int> >* flags = NULL, std::vector<std::vector<Tflag2> >* flags2 = NULL) {
     out << "# vtk DataFile Version 2.0" << std::endl;
     out << "Shape of holes" << std::endl;
     out << "ASCII" << std::endl;
@@ -534,7 +534,7 @@ std::ostream& write_VTK(std::ostream& out, const Delaunay& m_dela, Vtk_exported_
                 out << " " << verts[i]->info().second ;
             }
             dims.push_back(1);
-            ids.push_back(cpt++);
+            ids.push_back(cell_id.at(1).at(cpt++));
             out << std::endl;
         }
     }
@@ -548,7 +548,7 @@ std::ostream& write_VTK(std::ostream& out, const Delaunay& m_dela, Vtk_exported_
                 out << " " << verts[i]->info().second ;
             }
             dims.push_back(2);
-            ids.push_back(cpt++);
+            ids.push_back(cell_id.at(2).at(cpt++));
             out << std::endl;
         }
     }
@@ -562,7 +562,7 @@ std::ostream& write_VTK(std::ostream& out, const Delaunay& m_dela, Vtk_exported_
                 out << " " << verts[i]->info().second ;
             }
             dims.push_back(3);
-            ids.push_back(cpt++);
+            ids.push_back(cell_id.at(3).at(cpt++));
             out << std::endl;
         }
     }
@@ -640,20 +640,20 @@ std::ostream& write_VTK(std::ostream& out, const Delaunay& m_dela, Vtk_exported_
 }
 
 template <typename Tflag2>
-void write_VTK(const Delaunay& m_dela, std::string filename, Vtk_exported_cells opts = CELLS|EDGES|VERTICES, std::vector<std::vector<int> >* flags = NULL, std::vector<std::vector<Tflag2> >* flags2 = NULL) {
+void write_VTK(const Delaunay& m_dela, std::string filename, const std::vector<std::vector<int> >& cell_id, Vtk_exported_cells opts = CELLS|EDGES|VERTICES, std::vector<std::vector<int> >* flags = NULL, std::vector<std::vector<Tflag2> >* flags2 = NULL) {
     std::ofstream out ( filename, std::ios::out | std::ios::trunc);
 
     if ( ! out . good () ) {
         std::cerr << "write_VTK for Delaunay_3. Fatal Error:\n  " << filename << " not found.\n";
         throw std::runtime_error("File Parsing Error: File not found");
     }
-    write_VTK(out, m_dela, opts, flags, flags2);
+    write_VTK(out, m_dela, cell_id, opts, flags, flags2);
     out.close();
 }
 
 // Added by YS, because calling write_VTK without flags resulted in error: no match.
 //(couldn’t deduce template parameter Tflag2)
-void write_VTK(const Delaunay& m_dela, std::string filename, Vtk_exported_cells opts = CELLS|EDGES|VERTICES) {
+void write_VTK(const Delaunay& m_dela, std::string filename, const std::vector<std::vector<int> >& cell_id, Vtk_exported_cells opts = CELLS|EDGES|VERTICES) {
     std::ofstream out ( filename, std::ios::out | std::ios::trunc);
 
     if ( ! out . good () ) {
@@ -661,7 +661,7 @@ void write_VTK(const Delaunay& m_dela, std::string filename, Vtk_exported_cells 
         throw std::runtime_error("File Parsing Error: File not found");
     }
     std::vector<std::vector<int> >* flags_null = NULL;
-    write_VTK(out, m_dela, opts, NULL, flags_null);
+    write_VTK(out, m_dela, cell_id, opts, NULL, flags_null);
     out.close();
 }
 

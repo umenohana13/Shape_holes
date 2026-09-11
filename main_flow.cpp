@@ -62,13 +62,14 @@ int main(int argc, char* argv[])
     // create flow complex structure
     FlowComplex flow_cplx(poly);
 
-    write_VTK(flow_cplx.delaunay_mesh(), "tmp/delaunay.vtk");
+//    write_VTK(flow_cplx.delaunay_mesh(), "tmp/delaunay.vtk");
 
     flow_cplx.compute_cells();
     
     std::clog << "\n";
     std::cout << "===== PARTITION" << std::endl;
     std::cout << "partition: " << flow_cplx.check_partition_cells() << std::endl;
+    flow_cplx.print_poset(std::cout);
 
 
     // std::clog << "\n";
