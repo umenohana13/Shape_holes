@@ -845,9 +845,9 @@ public:
 
         size_t cpt(0);
         // Vertices
-        for (Delaunay::Finite_vertices_iterator vit = m_dela.finite_vertices_begin();
-             vit != m_dela.finite_vertices_end(); vit++) {
+        for (Delaunay::All_vertices_iterator vit = m_dela.all_vertices_begin(); vit != m_dela.all_vertices_end(); vit++) {
             const Delaunay::Simplex s(vit);
+            cpt = simplex_to_simplex_id[s].i;
             auto it(simplex_to_flowcell_id.find(s));
             if (it != simplex_to_flowcell_id.end()) { // Simplex found in a cell
                 if (vertices.find(s) != vertices.end()) { // Simplex already recorded in another cell
@@ -861,14 +861,11 @@ public:
                 std::cout << "Vertex " << cpt << " not in a flow cell" << std::endl;
     //                return false;
             }
-
-            ++cpt;
         }
         // Edges
-        cpt=0;
-        for (Delaunay::Finite_edges_iterator vit = m_dela.finite_edges_begin();
-             vit != m_dela.finite_edges_end(); vit++) {
-            const Delaunay::Simplex s(*vit);
+        for (Delaunay::All_edges_iterator eit = m_dela.all_edges_begin(); eit != m_dela.all_edges_end(); eit++) {
+            const Delaunay::Simplex s(*eit);
+            cpt = simplex_to_simplex_id[s].i;
             auto it(simplex_to_flowcell_id.find(s));
             if (it != simplex_to_flowcell_id.end()) { // Simplex found in a cell
                 if (edges.find(s) != edges.end()) { // Simplex already recorded in another cell
@@ -882,13 +879,11 @@ public:
                 std::cout << "Edge " << cpt << " not in a flow cell" << std::endl;
     //                return false;
             }
-            ++cpt;
         }
         // Facets
-        cpt=0;
-        for (Delaunay::Finite_facets_iterator vit = m_dela.finite_facets_begin();
-             vit != m_dela.finite_facets_end(); vit++) {
-            const Delaunay::Simplex s(*vit);
+        for (Delaunay::All_facets_iterator fit = m_dela.all_facets_begin(); fit != m_dela.all_facets_end(); fit++) {
+            const Delaunay::Simplex s(*fit);
+            cpt = simplex_to_simplex_id[s].i;
             auto it(simplex_to_flowcell_id.find(s));
             if (it != simplex_to_flowcell_id.end()) { // Simplex found in a cell
                 if (faces.find(s) != faces.end()) { // Simplex already recorded in another cell
@@ -902,13 +897,11 @@ public:
                 std::cout << "Facet " << cpt << " not in a flow cell" << std::endl;
     //                return false;
             }
-            ++cpt;
         }
         // Cells
-        cpt=0;
-        for (Delaunay::Finite_cells_iterator vit = m_dela.finite_cells_begin();
-             vit != m_dela.finite_cells_end(); vit++) {
-            const Delaunay::Simplex s(vit);
+        for (Delaunay::All_cells_iterator cit = m_dela.all_cells_begin(); cit != m_dela.all_cells_end(); cit++) {
+            const Delaunay::Simplex s(cit);
+            cpt = simplex_to_simplex_id[s].i;
     //            std::cout << "cell : " << simplex_to_simplex_id[s].i << " / dim " << simplex_to_simplex_id[s].dim << std::endl;
             auto it(simplex_to_flowcell_id.find(s));
             if (it != simplex_to_flowcell_id.end()) { // Simplex found in a cell
@@ -923,7 +916,6 @@ public:
                 std::cout << "Cell " << cpt << " not in a flow cell" << std::endl;
     //                return false;
             }
-            ++cpt;
         }
     }
 
