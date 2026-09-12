@@ -529,7 +529,7 @@ public:
     }
     
     FlowCell flowcell_from_infinite_cells()
-    {// NOT DEBBUGED YET
+    {
     std::clog << "BEGIN flowcell_from_infinite_cells" << std::endl;
         
         size_t id = 0; // WARNING, in the current implementation, the infinite flowcell is the 0 one
@@ -542,13 +542,28 @@ public:
         
         std::queue<Simplex> to_process;
         
+        std::clog << "Incident cell of infinity: ";
         std::vector<Delaunay::Cell_handle> inc_cells;
         m_dela.incident_cells(inf_v, std::back_inserter(inc_cells));
         for (const Delaunay::Cell_handle& cell : inc_cells) {
           to_process.push(Simplex(cell));// add all infinite cells
-          std::clog << "incident cell of infinity: ";
-          print_simplex(std::clog, Simplex(cell)) << "\n";
+          print_simplex(std::clog, Simplex(cell)) << " ";
         }
+        std::clog << "\nIncident facets of infinity: ";
+        std::vector<Delaunay::Facet> inc_facets;
+        m_dela.incident_facets(inf_v, std::back_inserter(inc_facets));
+        for (const Delaunay::Facet& cell : inc_facets) {
+          to_process.push(Simplex(cell));// add all infinite facets
+          print_simplex(std::clog, Simplex(cell)) << " ";
+        }
+        std::clog << "\nIncident edges of infinity: ";
+        std::vector<Delaunay::Edge> inc_edges;
+        m_dela.incident_edges(inf_v, std::back_inserter(inc_edges));
+        for (const Delaunay::Edge& cell : inc_edges) {
+          to_process.push(Simplex(cell));// add all infinite cells
+          print_simplex(std::clog, Simplex(cell)) << " ";
+        }
+        std::clog << "\n";
         
         while (!to_process.empty()) {
             const Simplex s = to_process.front();

@@ -262,8 +262,12 @@ public:
     void write_vtk(std::string filename) {
 
         size_t id_cell, id_flowcell;
-        std::vector<std::vector<int> > conley_ids(4), flow_ids(4), boundary_ids(4); // set to iis index
+        std::vector<std::vector<int> > simplex_ids(4), conley_ids(4), flow_ids(4), boundary_ids(4); // set to iis index
         const size_t end_cells(number_of_conley_iis()+1), end_flowcells(this->number_of_flow_cells()+1);
+        simplex_ids.at(0).resize(m_dela.number_of_vertices(),-1);
+        simplex_ids.at(1).resize(m_dela.number_of_finite_edges(),-1);
+        simplex_ids.at(2).resize(m_dela.number_of_finite_facets(),-1);
+        simplex_ids.at(3).resize(m_dela.number_of_finite_cells(),-1);
         conley_ids.at(0).resize(m_dela.number_of_vertices(),end_cells);
         conley_ids.at(1).resize(m_dela.number_of_finite_edges(),end_cells);
         conley_ids.at(2).resize(m_dela.number_of_finite_facets(),end_cells);
@@ -290,6 +294,7 @@ public:
         size_t cpt(0);
         for (typename Delaunay::Finite_vertices_iterator it = m_dela.finite_vertices_begin(); !(it == m_dela.finite_vertices_end()); ++it) {
             Delaunay::Simplex s(it);
+            simplex_ids.at(0).at(cpt) = simplex_to_simplex_id[s].i;
             id_cell = flowcell_id_to_iis_id[simplex_to_flowcell_id[s]];
             id_flowcell = simplex_to_flowcell_id[s];
             flow_ids.at(0).at(cpt) = id_flowcell;
@@ -300,6 +305,7 @@ public:
         cpt = 0;
         for (typename Delaunay::Edge edge : m_dela.finite_edges()) {
             Delaunay::Simplex s(edge);
+            simplex_ids.at(1).at(cpt) = simplex_to_simplex_id[s].i;
             id_cell = flowcell_id_to_iis_id[simplex_to_flowcell_id[s]];
             id_flowcell = simplex_to_flowcell_id[s];
             flow_ids.at(1).at(cpt) = id_flowcell;
@@ -311,6 +317,7 @@ public:
         cpt = 0;
         for (typename Delaunay::Facet facet : m_dela.finite_facets()) {
             Delaunay::Simplex s(facet);
+            simplex_ids.at(2).at(cpt) = simplex_to_simplex_id[s].i;
             id_cell = flowcell_id_to_iis_id[simplex_to_flowcell_id[s]];
             id_flowcell = simplex_to_flowcell_id[s];
             flow_ids.at(2).at(cpt) = id_flowcell;
@@ -322,6 +329,7 @@ public:
         cpt = 0;
         for (typename Delaunay::Cell_handle cell : m_dela.finite_cell_handles()) {
             Delaunay::Simplex s(cell);
+            simplex_ids.at(3).at(cpt) = simplex_to_simplex_id[s].i;
             id_cell = flowcell_id_to_iis_id[simplex_to_flowcell_id[s]];
             id_flowcell = simplex_to_flowcell_id[s];
             flow_ids.at(3).at(cpt) = id_flowcell;
@@ -330,7 +338,7 @@ public:
 
         // Export the Delaunay mesh with these flags
 //        write_VTK(m_dela, filename, CELLS|FACETS|EDGES|VERTICES, &conley_ids, &flow_ids);
-        write_VTK(m_dela, filename, CELLS|FACETS|EDGES|VERTICES, &conley_ids, &boundary_ids);
+        write_VTK(m_dela, filename, simplex_ids, CELLS|FACETS|EDGES|VERTICES, &conley_ids, &boundary_ids);
     }
 
 protected:
