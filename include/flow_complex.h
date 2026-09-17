@@ -199,6 +199,7 @@ protected:
     std::vector<FlowCell> flowcells;
     std::map<Simplex, size_t> simplex_to_flowcell_id;
     std::vector<std::set<size_t>> flowcell_faces; // encoding the poset
+    std::map<Simplex, CriticalInfo> simplex_to_criticalinfo;
     /* WARNING I think there might be problems with the algorithm, for instance if a flowcell is twice adjacent to another cell...
     * In this case, it will be counted only once in flowcell_faces...
     */
@@ -328,54 +329,74 @@ public:
      * First, initialize flowwcells from critical cells
      * For each dimension, up flows to build flowcells
      */
+
+    // Compute flowcells from critical cells sorted by decreasing df
     void compute_cells () {
-        init_flowcells_from_critical_cells();
-        std::clog << std::endl << "0D" << std::endl;
-        for (Delaunay::Finite_vertices_iterator vit = m_dela.finite_vertices_begin();
-        vit != m_dela.finite_vertices_end(); vit++) {
-            Delaunay::Simplex s = Delaunay::Simplex(vit);
-            CriticalInfo crit_info(DelaunayHelper::get_critical_info(m_dela, s));
-            if (crit_info.c == CriticalType::Critical){
-                FlowCell fc = flowcell_from_critical_cell(s, crit_info);
-                std::clog << "\n" << get_flowcell_id(fc) << " '---> " << fc << "\n"; // to display the built flowcells
-            }
-        }
+        // Init flowcells
+        std::vector<Delaunay::Simplex> criticals(init_flowcells_from_critical_cells());
 
-        std::clog << std::endl << "1D" << std::endl;
-        for (Delaunay::Finite_edges_iterator eit = m_dela.finite_edges_begin();
-        eit != m_dela.finite_edges_end(); eit++) {
-            Delaunay::Simplex s = Delaunay::Simplex(*eit);
+        for (Delaunay::Simplex s : criticals) {
             CriticalInfo crit_info(DelaunayHelper::get_critical_info(m_dela, s));
             if (crit_info.c == CriticalType::Critical){
                 FlowCell fc = flowcell_from_critical_cell(s, crit_info);
                 std::clog << "\n" << get_flowcell_id(fc) << " '---> " << fc << "\n"; // to display the built flowcells
             }
         }
-
-        std::clog << std::endl << "2D" << std::endl;
-        for (Delaunay::Finite_facets_iterator fit = m_dela.finite_facets_begin();
-        fit != m_dela.finite_facets_end(); fit++) {
-            Delaunay::Simplex s = Delaunay::Simplex(*fit);
-            CriticalInfo crit_info(DelaunayHelper::get_critical_info(m_dela, s));
-            if (crit_info.c == CriticalType::Critical){
-                FlowCell fc = flowcell_from_critical_cell(s, crit_info);
-                std::clog << "\n" << get_flowcell_id(fc) << " '---> " << fc << "\n"; // to display the built flowcells
-            }
-        }
-        
-        std::clog << std::endl << "3D" << std::endl;
-        FlowCell fc = flowcell_from_infinite_cells();
-        std::clog << "\n" << get_flowcell_id(fc) << " '---> " << fc << "    INF FLOW CELL\n"; // to display the built flowcells
-        for (Delaunay::Finite_cells_iterator cit = m_dela.finite_cells_begin();
-        cit != m_dela.finite_cells_end(); cit++) {
-            Delaunay::Simplex s = Delaunay::Simplex(cit);
-            CriticalInfo crit_info(DelaunayHelper::get_critical_info(m_dela, s));
-            if (crit_info.c == CriticalType::Critical){
-                FlowCell fc = flowcell_from_critical_cell(s, crit_info);
-                std::clog << "\n" << get_flowcell_id(fc) << " '---> " << fc << "\n"; // to display the built flowcells
-            }
-        }
+        // Compute "infinite" flowcell
+        flowcell_from_infinite_cells();
     }
+
+    // Compute flowcells from critical cells sorted by increasing dimension
+//    void compute_cells () {
+//        // Init flowcells
+//        init_flowcells_from_critical_cells();
+//
+//        std::clog << std::endl << "0D" << std::endl;
+//        for (Delaunay::Finite_vertices_iterator vit = m_dela.finite_vertices_begin();
+//        vit != m_dela.finite_vertices_end(); vit++) {
+//            Delaunay::Simplex s = Delaunay::Simplex(vit);
+//            CriticalInfo crit_info(DelaunayHelper::get_critical_info(m_dela, s));
+//            if (crit_info.c == CriticalType::Critical){
+//                FlowCell fc = flowcell_from_critical_cell(s, crit_info);
+//                std::clog << "\n" << get_flowcell_id(fc) << " '---> " << fc << "\n"; // to display the built flowcells
+//            }
+//        }
+//
+//        std::clog << std::endl << "1D" << std::endl;
+//        for (Delaunay::Finite_edges_iterator eit = m_dela.finite_edges_begin();
+//        eit != m_dela.finite_edges_end(); eit++) {
+//            Delaunay::Simplex s = Delaunay::Simplex(*eit);
+//            CriticalInfo crit_info(DelaunayHelper::get_critical_info(m_dela, s));
+//            if (crit_info.c == CriticalType::Critical){
+//                FlowCell fc = flowcell_from_critical_cell(s, crit_info);
+//                std::clog << "\n" << get_flowcell_id(fc) << " '---> " << fc << "\n"; // to display the built flowcells
+//            }
+//        }
+//
+//        std::clog << std::endl << "2D" << std::endl;
+//        for (Delaunay::Finite_facets_iterator fit = m_dela.finite_facets_begin();
+//        fit != m_dela.finite_facets_end(); fit++) {
+//            Delaunay::Simplex s = Delaunay::Simplex(*fit);
+//            CriticalInfo crit_info(DelaunayHelper::get_critical_info(m_dela, s));
+//            if (crit_info.c == CriticalType::Critical){
+//                FlowCell fc = flowcell_from_critical_cell(s, crit_info);
+//                std::clog << "\n" << get_flowcell_id(fc) << " '---> " << fc << "\n"; // to display the built flowcells
+//            }
+//        }
+//
+//        std::clog << std::endl << "3D" << std::endl;
+//        FlowCell fc = flowcell_from_infinite_cells();
+//        std::clog << "\n" << get_flowcell_id(fc) << " '---> " << fc << "    INF FLOW CELL\n"; // to display the built flowcells
+//        for (Delaunay::Finite_cells_iterator cit = m_dela.finite_cells_begin();
+//        cit != m_dela.finite_cells_end(); cit++) {
+//            Delaunay::Simplex s = Delaunay::Simplex(cit);
+//            CriticalInfo crit_info(DelaunayHelper::get_critical_info(m_dela, s));
+//            if (crit_info.c == CriticalType::Critical){
+//                FlowCell fc = flowcell_from_critical_cell(s, crit_info);
+//                std::clog << "\n" << get_flowcell_id(fc) << " '---> " << fc << "\n"; // to display the built flowcells
+//            }
+//        }
+//    }
 
     /**
     * @brief this function builds a flow cell and update the corresponding variables.
@@ -423,7 +444,8 @@ public:
         std::clog << "END init_flowcell_from_infinite_cells" << std::endl;
     }
     
-    void init_flowcells_from_critical_cells() {
+    std::vector<Delaunay::Simplex> init_flowcells_from_critical_cells() {
+        std::vector<Delaunay::Simplex> res;
         std::clog << "BEGIN init_flowcells_from_critical_cells" << std::endl;
         init_flowcell_from_infinite_cells();
         
@@ -431,8 +453,10 @@ public:
         vit != m_dela.finite_vertices_end(); vit++) {
             Delaunay::Simplex s = Delaunay::Simplex(vit);
             CriticalInfo crit_info(DelaunayHelper::get_critical_info(m_dela, s));
+            simplex_to_criticalinfo[s] = crit_info;
             if (crit_info.c == CriticalType::Critical){
                 init_flowcell_from_critical_cell(s, crit_info);
+                res.push_back(s);
             }
         }
 
@@ -440,8 +464,10 @@ public:
         eit != m_dela.finite_edges_end(); eit++) {
             Delaunay::Simplex s = Delaunay::Simplex(*eit);
             CriticalInfo crit_info(DelaunayHelper::get_critical_info(m_dela, s));
+            simplex_to_criticalinfo[s] = crit_info;
             if (crit_info.c == CriticalType::Critical){
                 init_flowcell_from_critical_cell(s, crit_info);
+                res.push_back(s);
             }
         }
 
@@ -449,8 +475,10 @@ public:
         fit != m_dela.finite_facets_end(); fit++) {
             Delaunay::Simplex s = Delaunay::Simplex(*fit);
             CriticalInfo crit_info(DelaunayHelper::get_critical_info(m_dela, s));
+            simplex_to_criticalinfo[s] = crit_info;
             if (crit_info.c == CriticalType::Critical){
                 init_flowcell_from_critical_cell(s, crit_info);
+                res.push_back(s);
             }
         }
 
@@ -458,11 +486,21 @@ public:
         cit != m_dela.finite_cells_end(); cit++) {
             Delaunay::Simplex s = Delaunay::Simplex(cit);
             CriticalInfo crit_info(DelaunayHelper::get_critical_info(m_dela, s));
+            simplex_to_criticalinfo[s] = crit_info;
             if (crit_info.c == CriticalType::Critical){
                 init_flowcell_from_critical_cell(s, crit_info);
+                res.push_back(s);
             }
         }
         std::clog << "END init_flowcells_from_critical_cells" << std::endl;
+
+        // Order the list of simplices by decreasing df
+        auto comparison = [&](const Delaunay::Simplex& s1, const Delaunay::Simplex& s2) {
+            return (simplex_to_criticalinfo.at(s1).r > simplex_to_criticalinfo.at(s2).r);
+        };
+        std::sort(res.begin(), res.end(), comparison);
+
+        return res;
     }
 
     FlowCell flowcell_from_critical_cell(const Simplex crit_simplex, const CriticalInfo& crit_info)
@@ -516,10 +554,12 @@ public:
                     print_simplex(std::clog, s_up_flow);
                     std::clog << " ";
                     // std::clog << s_up_flow.dimension()<< " ";
-                    if (s_up_flow.dimension() <= crit_simplex.dimension())
+//                    if (s_up_flow.dimension() <= crit_simplex.dimension())
                         to_process.push(s_up_flow);
                     // else
-                    //     std::clog << "(not added) "; // It seems that this case can happen in 3D: using our algo, if we start from a critical 2D cell we can arrive on a 3D cell... weird.
+                    if (s_up_flow.dimension() > crit_simplex.dimension())
+                         std::clog << "(not added) ";
+                    // It seems that this case can happen in 3D: using our algo, if we start from a critical 2D cell we can arrive on a 3D cell... weird.
                 }
                 // std::clog << "]\n";
             }
